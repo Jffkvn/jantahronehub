@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest'
 import { AppRouter } from './router'
 
 describe('AppRouter', () => {
-  it('loads the home module inside the OneHub shell', async () => {
+  it('loads the development shell showcase without bypassing authentication', async () => {
     render(
-      <MemoryRouter initialEntries={['/home']}>
+      <MemoryRouter initialEntries={['/components/shell']}>
         <AppRouter />
       </MemoryRouter>,
     )
