@@ -3,6 +3,7 @@ dist/
 playwright-report/
 test-results/
 coverage/
+supabase/.temp/
 .env
 .env.*
 !.env.example

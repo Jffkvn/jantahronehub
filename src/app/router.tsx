@@ -92,7 +92,7 @@ export function AppRouter() {
         <Route path="/mfa/challenge" element={<TotpChallengePage />} />
         <Route path="/forbidden" element={<ForbiddenPage />} />
         <Route path="/components" element={<ComponentShowcase />} />
-        {import.meta.env.DEV ? (
+        {import.meta.env.DEV || import.meta.env.MODE === 'e2e' ? (
           <Route
             path="/components/shell"
             element={
