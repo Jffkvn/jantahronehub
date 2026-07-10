@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../components/ui/Button'
@@ -17,13 +17,15 @@ export function TotpEnrollmentPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [showSecret, setShowSecret] = useState(false)
+  const enrollmentRequest = useRef<Promise<TotpEnrollment> | undefined>(undefined)
 
   useEffect(() => {
     let active = true
-    enrollTotp()
+    const request = enrollmentRequest.current ?? (enrollmentRequest.current = enrollTotp())
+    request
       .then((value) => { if (active) setEnrollment(value) })
       .catch(() => { if (active) setError('Authenticator setup could not be started. Sign out and try again.') })
-    return () => { active = false; setEnrollment(undefined) }
+    return () => { active = false }
   }, [enrollTotp])
 
   return (
