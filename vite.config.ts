@@ -3,10 +3,14 @@ import { configDefaults, defineConfig } from 'vitest/config'
 
 import { securityHeaders } from './config/securityHeaders'
 
+const developmentHeaders = Object.fromEntries(
+  Object.entries(securityHeaders).filter(([name]) => name !== 'Content-Security-Policy'),
+)
+
 export default defineConfig({
   plugins: [react()],
   server: {
-    headers: securityHeaders,
+    headers: developmentHeaders,
   },
   preview: {
     headers: securityHeaders,
