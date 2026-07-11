@@ -112,7 +112,7 @@ export function AppRouter() {
         <Route element={<RequireAuth />}>
           <Route element={<ProtectedShell />}>
             <Route path="/home" element={<HomePage />} />
-            <Route path="/my" element={<PortalPage />} />
+            <Route path="/my/*" element={<PortalPage />} />
             <Route path="/hr/*" element={<HrPage />} />
             <Route path="/inventory/*" element={<WarehousePage />} />
             <Route path="/cash/*" element={<CashPage />} />
