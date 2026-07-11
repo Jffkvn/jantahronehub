@@ -22,7 +22,11 @@ end $$;
 
 do $$
 begin
-  perform public.commit_employee_import('task10.xlsx',repeat('a',64),'[]'::jsonb);
+  perform public.commit_employee_import('task10.xlsx',repeat('a',64),jsonb_build_array(jsonb_build_object(
+    'row_number',2,'action','create','employee_id',null,
+    'employee_data',jsonb_build_object('employee_number','TASK10-REPEAT','legal_name','Repeated File','employee_tax_type','local','pct_month_worked','100','wht_rate','6'),
+    'period_data',jsonb_build_object('start_date',current_date::text,'employment_type','full_time','contract_type','permanent','probation_status','not_applicable')
+  )));
   raise exception 'duplicate file hash was accepted';
 exception when unique_violation then null;
 end $$;
