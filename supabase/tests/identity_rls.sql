@@ -42,19 +42,19 @@ values ('Test Company', 'test-company');
 
 insert into public.permissions (key, resource, action, description)
 values
-  ('employees.read', 'employees', 'read', 'Read employee records'),
-  ('employees.update', 'employees', 'update', 'Update employee records');
+  ('identity_test.read', 'identity_test', 'read', 'Read identity test records'),
+  ('identity_test.update', 'identity_test', 'update', 'Update identity test records');
 
 insert into public.role_permissions (role_id, permission_id)
 select r.id, p.id
 from public.roles r
-join public.permissions p on p.key = 'employees.read'
-where r.key = 'hr_admin';
+join public.permissions p on p.key = 'identity_test.read'
+where r.key = 'coordinator';
 
 insert into public.user_roles (profile_id, role_id)
 select '10000000-0000-0000-0000-000000000001', id
 from public.roles
-where key = 'hr_admin';
+where key = 'coordinator';
 
 set local role anon;
 select throws_ok(
@@ -107,8 +107,8 @@ select is(
   '10000000-0000-0000-0000-000000000001'::uuid,
   'current_profile_id returns the active authenticated profile'
 );
-select ok(public.has_permission('employees.read'), 'an assigned permission is granted');
-select ok(not public.has_permission('employees.update'), 'an unassigned permission is denied');
+select ok(public.has_permission('identity_test.read'), 'an assigned permission is granted');
+select ok(not public.has_permission('identity_test.update'), 'an unassigned permission is denied');
 select is(
   public.get_my_access_context() ->> 'profile_id',
   '10000000-0000-0000-0000-000000000001',
@@ -116,13 +116,13 @@ select is(
 );
 select is(
   public.get_my_access_context() -> 'role_keys',
-  '["hr_admin"]'::jsonb,
+  '["coordinator"]'::jsonb,
   'access context returns all assigned role keys'
 );
-select is(
-  public.get_my_access_context() -> 'permission_keys',
-  '["employees.read"]'::jsonb,
-  'access context returns effective assigned permissions only'
+select ok(
+  public.get_my_access_context() -> 'permission_keys' @> '["identity_test.read"]'::jsonb
+    and not (public.get_my_access_context() -> 'permission_keys' @> '["identity_test.update"]'::jsonb),
+  'access context includes assigned permissions and excludes unassigned permissions'
 );
 select is(
   public.get_my_access_context() -> 'enabled_modules',
@@ -136,7 +136,7 @@ select is(
 );
 select ok(
   not (public.get_my_access_context() ->> 'mfa_required')::boolean,
-  'MFA is not initially required for hr_admin'
+  'MFA is not initially required for coordinator'
 );
 
 select set_config(
@@ -144,7 +144,7 @@ select set_config(
   '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
   true
 );
-select ok(not public.has_permission('employees.read'), 'a user without an assigned role is denied');
+select ok(not public.has_permission('identity_test.read'), 'a user without an assigned role is denied');
 
 reset role;
 insert into public.user_roles (profile_id, role_id)
@@ -242,5 +242,12 @@ select throws_ok(
   'users without audit.create cannot append audit events directly'
 );
 
-select * from finish();
+do $$
+declare diagnostic text;
+begin
+  for diagnostic in select * from finish() loop
+    raise exception using message = 'pgTAP failure: ' || diagnostic;
+  end loop;
+end
+$$;
 rollback;

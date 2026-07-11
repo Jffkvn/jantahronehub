@@ -137,5 +137,12 @@ select is(
   'private file removal is exposed only through the scoped DELETE policy and Storage API'
 );
 
-select * from finish();
+do $$
+declare diagnostic text;
+begin
+  for diagnostic in select * from finish() loop
+    raise exception using message = 'pgTAP failure: ' || diagnostic;
+  end loop;
+end
+$$;
 rollback;

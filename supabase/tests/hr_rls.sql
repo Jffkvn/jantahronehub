@@ -204,5 +204,12 @@ select throws_ok(
   'update permission alone cannot archive an employee'
 );
 
-select * from finish();
+do $$
+declare diagnostic text;
+begin
+  for diagnostic in select * from finish() loop
+    raise exception using message = 'pgTAP failure: ' || diagnostic;
+  end loop;
+end
+$$;
 rollback;
