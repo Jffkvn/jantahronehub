@@ -17,6 +17,7 @@ export function EmployeeDirectoryPage({ api = employeeApi }: { api?: EmployeeApi
   const [search, setSearch] = useState('')
   const [creating, setCreating] = useState(false)
   const employees = useQuery({ queryKey: ['employees'], queryFn: api.list })
+  const setup = useQuery({ queryKey: ['employee-setup'], queryFn: api.setup })
   const createEmployee = useMutation({
     mutationFn: (values: EmployeeFormValues) => api.create(values),
     onSuccess: async () => {
@@ -28,7 +29,7 @@ export function EmployeeDirectoryPage({ api = employeeApi }: { api?: EmployeeApi
     const needle = search.trim().toLowerCase()
     if (!needle) return employees.data ?? []
     return (employees.data ?? []).filter((employee) =>
-      [employee.legalName, employee.preferredName, employee.employeeNumber, employee.companyEmail, employee.departmentName, employee.jobTitleName]
+      [employee.legalName, employee.employeeNumber, employee.companyEmail, employee.departmentName, employee.jobTitleName]
         .some((value) => value?.toLowerCase().includes(needle)),
     )
   }, [employees.data, search])
@@ -45,6 +46,6 @@ export function EmployeeDirectoryPage({ api = employeeApi }: { api?: EmployeeApi
     <header className="oh-page-header"><div><p>People operations</p><h1>Employee directory</h1><span>Maintain employment records, assignments and offboarding in one place.</span></div><Button onClick={() => setCreating(true)}><UserPlus size={17} /> Add employee</Button></header>
     <div className="oh-toolbar"><label className="oh-search"><Search size={18} aria-hidden="true" /><span className="oh-sr-only">Search employees</span><input type="search" aria-label="Search employees" placeholder="Search name, ID, role or department" value={search} onChange={(event) => setSearch(event.target.value)} /></label><span>{filtered.length} employee{filtered.length === 1 ? '' : 's'}</span></div>
     {employees.isLoading ? <p role="status">Loading employees…</p> : employees.isError ? <EmptyState icon={<Users />} title="Employees could not be loaded" description="Try again or contact the OneHub administrator." action={<Button variant="secondary" onClick={() => void employees.refetch()}>Try again</Button>} /> : <DataTable caption="Egypro employees" columns={columns} rows={filtered} rowKey={(row) => row.id} emptyMessage={search ? 'No employees match your search.' : 'No employees have been added yet.'} />}
-    <Modal open={creating} title="Add employee" onClose={() => setCreating(false)}><EmployeeForm submitting={createEmployee.isPending} onSubmit={async (values) => { await createEmployee.mutateAsync(values) }} /></Modal>
+    <Modal open={creating} title="Add employee" onClose={() => setCreating(false)}><EmployeeForm departments={setup.data?.departments} jobTitles={setup.data?.jobTitles} submitting={createEmployee.isPending} onSubmit={async (values) => { await createEmployee.mutateAsync(values) }} /></Modal>
   </section>
 }

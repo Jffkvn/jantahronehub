@@ -838,6 +838,10 @@ textarea {
 .oh-text-link, .oh-back-link { color: var(--color-primary-700); font-weight: 750; text-decoration: none; }
 .oh-back-link { display: inline-flex; align-items: center; gap: var(--space-2); width: fit-content; }
 .oh-employee-form { display: grid; gap: var(--space-5); }
+.oh-modal:has(.oh-employee-form) { width: min(100%, 64rem); }
+.oh-form-section { display: grid; gap: var(--space-4); margin: 0; padding: 0 0 var(--space-6); border: 0; border-bottom: 1px solid var(--color-border); }
+.oh-form-section legend { display: flex; width: 100%; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); color: var(--color-navy-800); font-size: 0.86rem; font-weight: 800; }
+.oh-form-section legend svg { color: var(--color-primary-700); }
 .oh-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .oh-form-actions { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-4); }
 .oh-textarea { min-height: 7rem; resize: vertical; }

@@ -10,7 +10,6 @@ const employee = {
   id: 'employee-1',
   employeeNumber: 'EGY-001',
   legalName: 'Amina Nsubuga',
-  preferredName: 'Amina',
   companyEmail: 'amina@egypro.test',
   workPhone: '+256700000001',
   active: true,
@@ -24,6 +23,7 @@ function createApi(): EmployeeApi {
   return {
     list: vi.fn().mockResolvedValue([employee]),
     get: vi.fn().mockResolvedValue(employee),
+    setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [] }),
     create: vi.fn().mockResolvedValue(employee),
     update: vi.fn().mockResolvedValue(employee),
     archive: vi.fn().mockResolvedValue(undefined),
@@ -59,14 +59,14 @@ test('edits the employee profile from the dossier', async () => {
 
   await screen.findByRole('heading', { name: 'Amina Nsubuga' })
   await user.click(screen.getByRole('button', { name: /edit employee/i }))
-  const legalName = screen.getByLabelText(/legal name/i)
-  await user.clear(legalName)
-  await user.type(legalName, 'Amina Kato')
+  const fullName = screen.getByLabelText(/full name/i)
+  await user.clear(fullName)
+  await user.type(fullName, 'Amina Kato')
   await user.click(screen.getByRole('button', { name: /save employee/i }))
 
   await waitFor(() => expect(api.update).toHaveBeenCalledWith(
     'employee-1',
-    expect.objectContaining({ legalName: 'Amina Kato', employeeNumber: 'EGY-001' }),
+    expect.objectContaining({ fullName: 'Amina Kato', employeeNumber: 'EGY-001' }),
   ))
 })
 

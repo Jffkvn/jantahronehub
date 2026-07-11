@@ -10,7 +10,6 @@ const employee = {
   id: 'employee-1',
   employeeNumber: 'EGY-001',
   legalName: 'Amina Nsubuga',
-  preferredName: 'Amina',
   companyEmail: 'amina@egypro.test',
   workPhone: '+256700000001',
   active: true,
@@ -24,6 +23,7 @@ function createApi(): EmployeeApi {
   return {
     list: vi.fn().mockResolvedValue([employee]),
     get: vi.fn().mockResolvedValue(employee),
+    setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [] }),
     create: vi.fn().mockResolvedValue(employee),
     update: vi.fn().mockResolvedValue(employee),
     archive: vi.fn().mockResolvedValue(undefined),
@@ -54,14 +54,22 @@ test('creates an employee from the directory', async () => {
 
   await screen.findByText('Amina Nsubuga')
   await user.click(screen.getByRole('button', { name: /add employee/i }))
+  expect(screen.getAllByRole('textbox')[0]).toHaveAccessibleName(/full name/i)
+  expect(screen.queryByLabelText(/preferred name/i)).not.toBeInTheDocument()
+  await user.type(screen.getByLabelText(/full name/i), 'Dora Atim')
+  await user.type(screen.getByLabelText(/nin \/ passport/i), 'CM1234567890')
   await user.type(screen.getByLabelText(/employee number/i), 'EGY-002')
-  await user.type(screen.getByLabelText(/legal name/i), 'Dora Atim')
   await user.type(screen.getByLabelText(/start date/i), '2026-07-11')
+  await user.type(screen.getByLabelText(/gross monthly salary/i), '2500000')
+  await user.type(screen.getByLabelText(/tin number/i), '1012345678')
   await user.click(screen.getByRole('button', { name: /save employee/i }))
 
   await waitFor(() => expect(api.create).toHaveBeenCalledWith(expect.objectContaining({
     employeeNumber: 'EGY-002',
-    legalName: 'Dora Atim',
+    fullName: 'Dora Atim',
+    nationalId: 'CM1234567890',
     startDate: '2026-07-11',
+    grossSalary: '2500000',
+    tinNumber: '1012345678',
   })))
 })
