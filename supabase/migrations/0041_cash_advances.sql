@@ -1,10 +1,10 @@
 -- 1. Create permissions
-insert into public.permissions (key, description)
+insert into public.permissions (key, resource, action, description)
 values
-  ('cash_advances.request', 'Can request project cash advances'),
-  ('cash_advances.manage', 'Can approve, disburse, review, and close project cash advances'),
-  ('cash_advances.view_all', 'Can view all project cash advances globally'),
-  ('cash_advances.view_own', 'Can view own cash advances')
+  ('cash_advances.request', 'cash_advances', 'request', 'Can request project cash advances'),
+  ('cash_advances.manage', 'cash_advances', 'manage', 'Can approve, disburse, review, and close project cash advances'),
+  ('cash_advances.view_all', 'cash_advances', 'view_all', 'Can view all project cash advances globally'),
+  ('cash_advances.view_own', 'cash_advances', 'view_own', 'Can view own cash advances')
 on conflict (key) do nothing;
 
 -- 2. Assign permissions to roles
