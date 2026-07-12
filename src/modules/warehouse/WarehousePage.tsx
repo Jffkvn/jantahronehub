@@ -1,5 +1,54 @@
-import { ModuleLandingPage } from '../shell/ModuleLandingPage'
+import { Routes, Route, Navigate, NavLink } from 'react-router-dom'
+import { OverviewPage } from './pages/OverviewPage'
+import { ConsumablesPage } from './pages/ConsumablesPage'
+import { EquipmentPage } from './pages/EquipmentPage'
+import { RequestsPage } from './pages/RequestsPage'
+import { RequestDetailPage } from './pages/RequestDetailPage'
+import { HistoryPage } from './pages/HistoryPage'
+import { BulkToolsPage } from './pages/BulkToolsPage'
+import { Layout, Package, Wrench, ClipboardList, History, FileSpreadsheet } from 'lucide-react'
 
 export default function WarehousePage() {
-  return <ModuleLandingPage eyebrow="Operations" title="Inventory Operations" description="Stock, equipment, requests, goods receiving, checkout, returns, and custody." />
+  const tabs = [
+    { to: 'overview', label: 'Overview', icon: Layout },
+    { to: 'consumables', label: 'Consumables', icon: Package },
+    { to: 'equipment', label: 'Equipment', icon: Wrench },
+    { to: 'requests', label: 'Requests', icon: ClipboardList },
+    { to: 'history', label: 'Ledger History', icon: History },
+    { to: 'bulk-tools', label: 'Bulk Tools', icon: FileSpreadsheet }
+  ]
+
+  return (
+    <section className="oh-workspace-page">
+      {/* Tab Navigation header */}
+      <nav className="oh-portal-tabs" aria-label="Inventory sections" style={{ marginBottom: 'var(--space-6)' }}>
+        {tabs.map((tab) => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            className={({ isActive }) =>
+              isActive ? 'oh-portal-tab oh-portal-tab--active' : 'oh-portal-tab'
+            }
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+          >
+            <tab.icon size={16} />
+            <span>{tab.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Routes Switch */}
+      <Routes>
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route path="overview" element={<OverviewPage />} />
+        <Route path="consumables" element={<ConsumablesPage />} />
+        <Route path="equipment" element={<EquipmentPage />} />
+        <Route path="requests" element={<RequestsPage />} />
+        <Route path="requests/:requestId" element={<RequestDetailPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="bulk-tools" element={<BulkToolsPage />} />
+        <Route path="*" element={<Navigate to="overview" replace />} />
+      </Routes>
+    </section>
+  )
 }
