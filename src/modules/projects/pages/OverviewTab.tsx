@@ -69,7 +69,7 @@ export function OverviewTab() {
       setCreateModalOpen(false)
       setFormError('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || 'Failed to create project.')
     }
   })
@@ -89,7 +89,7 @@ export function OverviewTab() {
       setAssignModalOpen(false)
       setAssignError('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setAssignError(err.message || 'Failed to create assignment.')
     }
   })
@@ -277,7 +277,7 @@ export function OverviewTab() {
               <select
                 className="oh-input"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as 'active' | 'completed' | 'on_hold')}
               >
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
@@ -290,7 +290,7 @@ export function OverviewTab() {
               <select
                 className="oh-input"
                 value={healthStatus}
-                onChange={(e) => setHealthStatus(e.target.value as any)}
+                onChange={(e) => setHealthStatus(e.target.value as 'on_track' | 'needs_attention' | 'at_risk')}
               >
                 <option value="on_track">On Track</option>
                 <option value="needs_attention">Needs Attention</option>
@@ -374,7 +374,7 @@ export function OverviewTab() {
             <select
               className="oh-input"
               value={assignRole}
-              onChange={(e) => setAssignRole(e.target.value as any)}
+              onChange={(e) => setAssignRole(e.target.value as 'coordinator' | 'pm')}
               required
             >
               <option value="coordinator">Coordinator (Field updates submission)</option>

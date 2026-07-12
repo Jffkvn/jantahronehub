@@ -92,7 +92,7 @@ export function DailyUpdatesTab() {
       setCreateModalOpen(false)
       setFormError('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || 'Failed to submit update.')
     }
   })
@@ -115,7 +115,7 @@ export function DailyUpdatesTab() {
       setEditModalOpen(false)
       setFormError('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || 'Failed to save modifications.')
     }
   })
@@ -130,7 +130,7 @@ export function DailyUpdatesTab() {
       setPmFeedback('')
       setActionUpdateId('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setActionError(err.message || 'Failed to endorse update.')
     }
   })
@@ -145,7 +145,7 @@ export function DailyUpdatesTab() {
       setPmFeedback('')
       setActionUpdateId('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setActionError(err.message || 'Failed to request revision.')
     }
   })

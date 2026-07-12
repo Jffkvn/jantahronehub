@@ -94,7 +94,7 @@ export function ProjectDetailsTab() {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       setEditModalOpen(false)
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setEditError(err.message || 'Failed to update project.')
     }
   })
@@ -118,7 +118,7 @@ export function ProjectDetailsTab() {
       setAssignRole('coordinator')
       setAssignModalOpen(false)
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setAssignError(err.message || 'Failed to assign team member.')
     }
   })
@@ -133,7 +133,7 @@ export function ProjectDetailsTab() {
       setPmFeedback('')
       setActionUpdateId('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setActionError(err.message || 'Failed to endorse update.')
     }
   })
@@ -148,7 +148,7 @@ export function ProjectDetailsTab() {
       setPmFeedback('')
       setActionUpdateId('')
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setActionError(err.message || 'Failed to request revision.')
     }
   })
@@ -499,7 +499,7 @@ export function ProjectDetailsTab() {
               <select
                 className="oh-input"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as 'active' | 'completed' | 'on_hold')}
               >
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
@@ -512,7 +512,7 @@ export function ProjectDetailsTab() {
               <select
                 className="oh-input"
                 value={healthStatus}
-                onChange={(e) => setHealthStatus(e.target.value as any)}
+                onChange={(e) => setHealthStatus(e.target.value as 'on_track' | 'needs_attention' | 'at_risk')}
               >
                 <option value="on_track">On Track</option>
                 <option value="needs_attention">Needs Attention</option>
@@ -579,7 +579,7 @@ export function ProjectDetailsTab() {
             <select
               className="oh-input"
               value={assignRole}
-              onChange={(e) => setAssignRole(e.target.value as any)}
+              onChange={(e) => setAssignRole(e.target.value as 'coordinator' | 'pm')}
               required
             >
               <option value="coordinator">Coordinator (Field updates submission)</option>

@@ -123,7 +123,7 @@ export const projectsApi = {
     const sessionUser = (await supabase.auth.getUser()).data.user
     if (!sessionUser) throw new Error('Unauthenticated')
 
-    const payload: Record<string, any> = { ...updates, updated_at: new Date().toISOString() }
+    const payload: Record<string, unknown> = { ...updates, updated_at: new Date().toISOString() }
     if (updates.estimated_budget_ugx !== undefined) {
       payload.budget_set_by = sessionUser.id
     }

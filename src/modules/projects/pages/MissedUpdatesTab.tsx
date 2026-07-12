@@ -67,7 +67,7 @@ export function MissedUpdatesTab() {
         </div>
       ) : error ? (
         <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderRadius: 'var(--radius-md)' }}>
-          Failed to fetch missed updates report. {(error as any).message}
+          Failed to fetch missed updates report. {(error as Error).message}
         </div>
       ) : missedUpdates.length === 0 ? (
         <EmptyState
