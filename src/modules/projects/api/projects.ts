@@ -336,4 +336,3 @@ export const projectsApi = {
     return data as Array<{ id: string; display_name: string }>
   }
 }
-
