@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '../../../lib/supabase/client'
 import { createPrivateDownloadUrl } from '../../../lib/security/privateFiles'
+import { mapPayrollRun } from '../../payroll/api/payroll'
+import type { PayrollRun } from '../../payroll/types'
 
 type EmploymentType = 'full_time' | 'part_time' | 'casual' | 'intern' | 'contractor'
 type ContractType = 'permanent' | 'fixed_term' | 'casual' | 'internship' | 'consultancy'
@@ -37,6 +39,8 @@ export interface SelfServiceApi {
   getProfile(): Promise<SelfServiceProfile | null>
   listDocuments(): Promise<SelfServiceDocument[]>
   createDocumentDownload(document: SelfServiceDocument): Promise<string>
+  listPayslips(): Promise<PayrollRun[]>
+  downloadPayslip(run: PayrollRun): Promise<void>
 }
 
 type PeriodRow = {
@@ -162,8 +166,25 @@ async function createDocumentDownload(document: SelfServiceDocument) {
   })
 }
 
+async function listPayslips() {
+  const { data, error } = await getSupabaseClient().rpc('get_my_payslips')
+  if (error) throw error
+  return ((data ?? []) as Array<{ payload: Record<string, unknown> }>).map((row) => mapPayrollRun(row.payload))
+}
+
+async function downloadPayslip(run: PayrollRun) {
+  const item = run.items[0]
+  if (!item) throw new Error('Payslip data is unavailable')
+  const { error } = await getSupabaseClient().rpc('record_payroll_export', { target_run_id: run.id, target_item_id: item.id, export_kind: 'payslip' })
+  if (error) throw error
+  const { downloadPayslip: downloadPayslipPdf } = await import('../../payroll/exports/payslip')
+  await downloadPayslipPdf(run, item)
+}
+
 export const selfServiceApi: SelfServiceApi = {
   getProfile,
   listDocuments,
   createDocumentDownload,
+  listPayslips,
+  downloadPayslip,
 }

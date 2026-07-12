@@ -20,6 +20,7 @@ export default function PortalPage({ api = selfServiceApi }: { api?: SelfService
     queryKey: ['self-service-documents'],
     queryFn: api.listDocuments,
   })
+  const payslips = useQuery({ queryKey: ['self-service-payslips'], queryFn: api.listPayslips })
 
   if (profile.isLoading) {
     return (
@@ -29,7 +30,7 @@ export default function PortalPage({ api = selfServiceApi }: { api?: SelfService
     )
   }
 
-  if (profile.isError || documents.isError) {
+  if (profile.isError || documents.isError || payslips.isError) {
     return (
       <section className="oh-workspace-page">
         <EmptyState
@@ -42,6 +43,7 @@ export default function PortalPage({ api = selfServiceApi }: { api?: SelfService
               onClick={() => {
                 void profile.refetch()
                 void documents.refetch()
+                void payslips.refetch()
               }}
             >
               Try again
@@ -68,7 +70,7 @@ export default function PortalPage({ api = selfServiceApi }: { api?: SelfService
             />
           }
         />
-        <Route path="payslips" element={<MyPayslipsPage />} />
+        <Route path="payslips" element={<MyPayslipsPage api={api} runs={payslips.data ?? []} />} />
         <Route path="*" element={<Navigate to="/my" replace />} />
       </Routes>
     </section>

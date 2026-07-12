@@ -44,6 +44,8 @@ function createApi(overrides: Partial<SelfServiceApi> = {}): SelfServiceApi {
     createDocumentDownload: vi
       .fn()
       .mockResolvedValue('https://example.supabase.co/storage/v1/object/sign/private-files/file.pdf'),
+    listPayslips: vi.fn().mockResolvedValue([]),
+    downloadPayslip: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }
 }
@@ -125,4 +127,12 @@ test('keeps payslips empty until the payroll module creates real records', async
   expect(await screen.findByRole('heading', { name: /my payslips/i })).toBeInTheDocument()
   expect(screen.getByText(/no payslips are available yet/i)).toBeInTheDocument()
   expect(screen.queryByText(/demo|sample|mock/i)).not.toBeInTheDocument()
+})
+
+test('retries the payslip query after a temporary workspace failure',async()=>{
+  const user=userEvent.setup(),listPayslips=vi.fn().mockRejectedValueOnce(new Error('temporary')).mockResolvedValue([])
+  renderPortal({api:createApi({listPayslips})})
+  expect(await screen.findByText(/workspace could not be loaded/i)).toBeInTheDocument()
+  await user.click(screen.getByRole('button',{name:/try again/i}))
+  await waitFor(()=>expect(listPayslips).toHaveBeenCalledTimes(2))
 })

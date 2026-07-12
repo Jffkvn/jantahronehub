@@ -4,9 +4,9 @@ import { validateEmployeeRows } from './employeeParser'
 
 test('classifies additions and identifier-based updates without fuzzy name matching', () => {
   const result = validateEmployeeRows([
-    { rowNumber: 2, full_name: 'Dora Atim', employee_number: 'EGY-002', start_date: '2026-07-11' },
-    { rowNumber: 3, full_name: 'Amina Nsubuga', employee_number: 'EGY-001', company_email: 'new@egypro.test', start_date: '2025-01-10' },
-    { rowNumber: 4, full_name: 'Amina Nsubuga', employee_number: 'EGY-099', start_date: '2026-07-11' },
+    { rowNumber: 2, full_name: 'Dora Atim', employee_number: 'EGY-002', start_date: '2026-07-11', payment_method: 'cash' },
+    { rowNumber: 3, full_name: 'Amina Nsubuga', employee_number: 'EGY-001', company_email: 'new@egypro.test', start_date: '2025-01-10', payment_method: 'cash' },
+    { rowNumber: 4, full_name: 'Amina Nsubuga', employee_number: 'EGY-099', start_date: '2026-07-11', payment_method: 'cash' },
   ], [{ id: 'employee-1', employeeNumber: 'EGY-001', legalName: 'Amina Nsubuga', companyEmail: 'amina@egypro.test', nationalId: null }])
 
   expect(result.rows.map((row) => row.action)).toEqual(['create', 'update', 'create'])
@@ -28,6 +28,16 @@ test('reports exact row errors and duplicate identifiers', () => {
 })
 
 test('requires an end date for fixed-term contracts', () => {
-  const result = validateEmployeeRows([{ rowNumber: 2, full_name: 'Fixed Term', employee_number: 'EGY-003', start_date: '2026-07-11', contract_type: 'fixed_term' }], [])
+  const result = validateEmployeeRows([{ rowNumber: 2, full_name: 'Fixed Term', employee_number: 'EGY-003', start_date: '2026-07-11', contract_type: 'fixed_term', payment_method: 'cash' }], [])
   expect(result.errors).toContainEqual(expect.objectContaining({ field: 'contract_end_date' }))
+})
+
+test('requires the details for the explicitly selected payment method', () => {
+  const result = validateEmployeeRows([{ rowNumber: 2, full_name: 'Bank Employee', employee_number: 'EGY-004', start_date: '2026-07-11', payment_method: 'bank', bank_name: 'Stanbic' }], [])
+  expect(result.errors).toContainEqual(expect.objectContaining({ field: 'account_number' }))
+})
+
+test('rejects an operational import without an explicit payment method', () => {
+  const result = validateEmployeeRows([{ rowNumber: 2, full_name: 'No Route', employee_number: 'EGY-005', start_date: '2026-07-11' }], [])
+  expect(result.errors).toContainEqual(expect.objectContaining({ field: 'payment_method' }))
 })

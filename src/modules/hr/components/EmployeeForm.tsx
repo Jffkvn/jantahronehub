@@ -10,7 +10,7 @@ export interface EmployeeSetupOption { id: string; name: string; departmentId?: 
 const defaults: EmployeeFormValues = {
   fullName: '', nationalId: '', companyEmail: '', personalEmail: '', phone: '', gender: '', dateOfBirth: '',
   departmentId: '', jobTitleId: '', employmentType: 'full_time', startDate: '', contractType: 'permanent', contractEndDate: '', probationEndDate: '', probationStatus: 'not_applicable',
-  grossSalary: '', currency: 'UGX', customOvertimeRate: '', mobileMoneyNumber: '', bankName: '', accountNumber: '', sortCode: '',
+  grossSalary: '', currency: 'UGX', customOvertimeRate: '', paymentMethod: 'cash', mobileMoneyNumber: '', bankName: '', accountNumber: '', sortCode: '',
   employeeNumber: '', tinNumber: '', nssfNumber: '', employeeTaxType: 'local', pctMonthWorked: '100', whtRate: '6',
 }
 
@@ -24,6 +24,7 @@ export function EmployeeForm({ initialValues, onSubmit, submitting = false, depa
 }) {
   const { register, handleSubmit, control, formState: { errors } } = useForm<EmployeeFormValues>({ resolver: zodResolver(employeeFormSchema), defaultValues: { ...defaults, ...initialValues } })
   const taxType = useWatch({ control, name: 'employeeTaxType' })
+  const paymentMethod = useWatch({ control, name: 'paymentMethod' })
   return <form className="oh-employee-form" onSubmit={handleSubmit(onSubmit)}>
     <Section icon={<UserRound size={17} />} title="Personal information">
       <Input label="Full name" required error={errors.fullName?.message} {...register('fullName')} />
@@ -50,8 +51,9 @@ export function EmployeeForm({ initialValues, onSubmit, submitting = false, depa
       <Input label="Gross monthly salary" inputMode="decimal" error={errors.grossSalary?.message} {...register('grossSalary')} />
       <label className="oh-field"><span className="oh-field__label">Currency</span><select className="oh-input" {...register('currency')}><option value="UGX">UGX — Ugandan Shilling</option></select></label>
       <Input label="Custom overtime rate (/hr)" inputMode="decimal" hint="Leave blank to use the standard payroll formula." error={errors.customOvertimeRate?.message} {...register('customOvertimeRate')} />
-      <Input label="Mobile money number (MTN/Airtel)" {...register('mobileMoneyNumber')} />
-      <Input label="Bank name" {...register('bankName')} /><Input label="Account number" {...register('accountNumber')} /><Input label="Sort code (Bank branch)" {...register('sortCode')} />
+      <label className="oh-field"><span className="oh-field__label">Payment method</span><select className="oh-input" {...register('paymentMethod')}><option value="cash">Cash / manually arranged</option><option value="bank">Bank transfer</option><option value="mobile_money">Mobile money</option></select></label>
+      <Input label="Mobile money number (MTN/Airtel)" required={paymentMethod === 'mobile_money'} error={errors.mobileMoneyNumber?.message} {...register('mobileMoneyNumber')} />
+      <Input label="Bank name" required={paymentMethod === 'bank'} error={errors.bankName?.message} {...register('bankName')} /><Input label="Account number" required={paymentMethod === 'bank'} error={errors.accountNumber?.message} {...register('accountNumber')} /><Input label="Sort code (Bank branch)" {...register('sortCode')} />
     </Section>
     <Section icon={<Landmark size={17} />} title="Statutory & tax details">
       <Input label="Employee number (Company ID)" required error={errors.employeeNumber?.message} {...register('employeeNumber')} />

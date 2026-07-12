@@ -11,7 +11,7 @@ test('previews a valid workbook before committing it', async () => {
   const api: EmployeeImportApi = {
     existingIdentities: vi.fn().mockResolvedValue([]), setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [] }), commit: vi.fn().mockResolvedValue({ batchId: 'batch-1', created: 1, updated: 0 }), exportEmployees: vi.fn(),
   }
-  const parse = vi.fn().mockResolvedValue([{ rowNumber: 2, full_name: 'Dora Atim', employee_number: 'EGY-002', start_date: '2026-07-11' }])
+  const parse = vi.fn().mockResolvedValue([{ rowNumber: 2, full_name: 'Dora Atim', employee_number: 'EGY-002', start_date: '2026-07-11', payment_method: 'cash' }])
   renderWithProviders(<EmployeeImportPage api={api} parse={parse} downloadTemplate={vi.fn()} />)
 
   await user.upload(screen.getByLabelText(/employee workbook/i), new File(['xlsx'], 'employees.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))

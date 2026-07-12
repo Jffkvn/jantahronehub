@@ -14,7 +14,7 @@ function normalized(row: RawEmployeeRow): EmployeeFormValues {
     gender: text(row.gender).toLowerCase() as EmployeeFormValues['gender'], dateOfBirth: text(row.date_of_birth), departmentId: text(row.department_id), jobTitleId: text(row.job_title_id),
     employmentType: (text(row.employment_type) || 'full_time') as EmployeeFormValues['employmentType'], startDate: text(row.start_date), contractType: (text(row.contract_type) || 'permanent') as EmployeeFormValues['contractType'],
     contractEndDate: text(row.contract_end_date), probationEndDate: text(row.probation_end_date), probationStatus: (text(row.probation_status) || 'not_applicable') as EmployeeFormValues['probationStatus'],
-    grossSalary: text(row.gross_salary), currency: 'UGX', customOvertimeRate: text(row.custom_overtime_rate), mobileMoneyNumber: text(row.mobile_money_number), bankName: text(row.bank_name), accountNumber: text(row.account_number), sortCode: text(row.sort_code),
+    grossSalary: text(row.gross_salary), currency: 'UGX', customOvertimeRate: text(row.custom_overtime_rate), paymentMethod: text(row.payment_method) as EmployeeFormValues['paymentMethod'], mobileMoneyNumber: text(row.mobile_money_number), bankName: text(row.bank_name), accountNumber: text(row.account_number), sortCode: text(row.sort_code),
     employeeNumber: text(row.employee_number), tinNumber: text(row.tin_number), nssfNumber: text(row.nssf_number), employeeTaxType: (text(row.employee_tax_type) || 'local') as EmployeeFormValues['employeeTaxType'], pctMonthWorked: text(row.pct_month_worked) || '100', whtRate: text(row.wht_rate) || '6',
   }
 }
