@@ -23,7 +23,7 @@ export function ProjectDetailsTab() {
   const [assignModalOpen, setAssignModalOpen] = useState(false)
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
   const [selectedUpdate, setSelectedUpdate] = useState<DailyUpdate | null>(null)
-  
+
   // Feedback modals
   const [endorseModalOpen, setEndorseModalOpen] = useState(false)
   const [revisionModalOpen, setRevisionModalOpen] = useState(false)
@@ -276,7 +276,7 @@ export function ProjectDetailsTab() {
 
       {/* Main Grid: Details & Team */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
-        
+
         {/* Left Side: General Profile Card */}
         <section className="oh-detail-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-5)', background: 'var(--color-surface)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-3)' }}>
@@ -671,7 +671,7 @@ export function ProjectDetailsTab() {
                       {new Date(rev.created_at).toLocaleString()} by {rev.profiles_created_by?.display_name || 'System'}
                     </small>
                   </div>
-                  
+
                   <div style={{ margin: 'var(--space-2) 0', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
                     {rev.summary}
                   </div>

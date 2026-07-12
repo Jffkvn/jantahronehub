@@ -229,9 +229,9 @@ select throws_ok(
 
 -- Test 22: RPC Missed updates function works
 select results_eq(
-  $$ 
-    select project_name, user_full_name 
-    from public.rpc_check_missed_daily_updates('2026-07-12') 
+  $$
+    select project_name, user_full_name
+    from public.rpc_check_missed_daily_updates('2026-07-12')
   $$,
   $$ select 'Project Alpha'::text, 'Test Coord'::text $$,
   'Missed updates RPC detects unsubmitted active coordinator update'

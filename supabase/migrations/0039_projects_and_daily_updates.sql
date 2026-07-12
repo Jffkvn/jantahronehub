@@ -26,8 +26,8 @@ create table public.project_assignments (
   check (unassigned_at is null or unassigned_at > assigned_at)
 );
 
-create unique index unique_active_project_assignment 
-on public.project_assignments (project_id, user_id, role_on_project) 
+create unique index unique_active_project_assignment
+on public.project_assignments (project_id, user_id, role_on_project)
 where (unassigned_at is null);
 
 create table public.daily_updates (
@@ -124,7 +124,7 @@ alter table public.daily_update_revisions enable row level security;
 -- Projects RLS Policies
 create policy projects_select_policy on public.projects
   for select using (
-    public.has_permission('projects.manage') or 
+    public.has_permission('projects.manage') or
     public.has_permission('projects.read_all') or
     exists (
       select 1 from public.project_assignments pa
@@ -314,7 +314,7 @@ begin
   v_actor := public.current_profile_id();
   if v_actor is null then
     v_actor := coalesce(
-      case 
+      case
         when new.status in ('endorsed', 'revision_requested') then new.endorsed_by
         else new.submitted_by
       end,
@@ -368,7 +368,7 @@ begin
   end if;
 
   return query
-  select 
+  select
     p.id as project_id,
     p.name as project_name,
     pa.user_id as user_id,

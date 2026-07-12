@@ -21,7 +21,7 @@ export function DailyUpdatesTab() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedUpdate, setSelectedUpdate] = useState<DailyUpdate | null>(null)
-  
+
   // Feedback action modals
   const [endorseModalOpen, setEndorseModalOpen] = useState(false)
   const [revisionModalOpen, setRevisionModalOpen] = useState(false)
@@ -311,10 +311,10 @@ export function DailyUpdatesTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {filteredUpdates.map(update => {
             const canEdit = update.submitted_by === currentUserId && (update.status === 'draft' || update.status === 'revision_requested')
-            
+
             return (
               <div key={update.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-                
+
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
                   <div>
@@ -452,7 +452,7 @@ export function DailyUpdatesTab() {
             <label className="oh-field__label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
               <Paperclip size={14} /> Progress Evidence (Photo Links)
             </label>
-            
+
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
               <input
                 type="text"
@@ -530,7 +530,7 @@ export function DailyUpdatesTab() {
             <label className="oh-field__label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
               <Paperclip size={14} /> Progress Evidence (Photo Links)
             </label>
-            
+
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
               <input
                 type="text"
