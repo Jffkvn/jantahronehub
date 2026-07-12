@@ -1,5 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { RequirePermission } from '../auth/RequirePermission'
 
 import { EmployeeDirectoryPage } from './pages/EmployeeDirectoryPage'
 import { EmployeeDossierPage } from './pages/EmployeeDossierPage'
@@ -7,6 +9,12 @@ import { EmployeeImportPage } from './pages/EmployeeImportPage'
 import { PayrollRunsPage } from '../payroll/pages/PayrollRunsPage'
 import { PayrollRunPage } from '../payroll/pages/PayrollRunPage'
 import { defaultHrPath } from './navigation'
+
+const HistoricalPayrollMigrationPage = lazy(() =>
+  import('../migrations/pages/HistoricalPayrollMigrationPage').then((module) => ({
+    default: module.HistoricalPayrollMigrationPage,
+  }))
+)
 
 function EmployeeDossierRoute() {
   const { employeeId } = useParams()
@@ -22,5 +30,25 @@ export default function HrPage() {
   const { access } = useAuth()
   const permissions = access?.permissionKeys ?? []
   const landingPath = defaultHrPath(permissions)
-  return <Routes><Route index element={<Navigate to={landingPath} replace />} /><Route path="employees" element={<EmployeeDirectoryPage />} /><Route path="employees/import" element={<EmployeeImportPage />} /><Route path="employees/:employeeId" element={<EmployeeDossierRoute />} /><Route path="payroll" element={<PayrollRunsPage permissions={permissions} />} /><Route path="payroll/:runId" element={<PayrollRunRoute permissions={permissions} />} /><Route path="*" element={<Navigate to={landingPath} replace />} /></Routes>
+  return (
+    <Routes>
+      <Route index element={<Navigate to={landingPath} replace />} />
+      <Route path="employees" element={<EmployeeDirectoryPage />} />
+      <Route path="employees/import" element={<EmployeeImportPage />} />
+      <Route path="employees/:employeeId" element={<EmployeeDossierRoute />} />
+      <Route path="payroll" element={<PayrollRunsPage permissions={permissions} />} />
+      <Route element={<RequirePermission permission="payroll.migrate_history" />}>
+        <Route
+          path="payroll/history-migration"
+          element={
+            <Suspense fallback={<div role="status">Loading...</div>}>
+              <HistoricalPayrollMigrationPage />
+            </Suspense>
+          }
+        />
+      </Route>
+      <Route path="payroll/:runId" element={<PayrollRunRoute permissions={permissions} />} />
+      <Route path="*" element={<Navigate to={landingPath} replace />} />
+    </Routes>
+  )
 }
