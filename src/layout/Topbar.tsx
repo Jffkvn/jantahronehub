@@ -1,6 +1,7 @@
-import { Bell, Menu, Search } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 
 import { roleLabels, type UserRole } from '../config/modules'
+import { NotificationCenter } from '../modules/notifications/NotificationCenter'
 
 interface TopbarProps {
   pageTitle: string
@@ -50,10 +51,7 @@ export function Topbar({
           <span className="oh-sr-only">Search OneHub</span>
           <input type="search" placeholder="Search OneHub" />
         </label>
-        <button className="oh-icon-button oh-notification-button" type="button" aria-label="Notifications">
-          <Bell size={20} />
-          <span aria-hidden="true" />
-        </button>
+        <NotificationCenter />
         <div className="oh-user-summary">
           <span className="oh-user-summary__avatar" aria-hidden="true">{initials}</span>
           <span className="oh-user-summary__copy">
