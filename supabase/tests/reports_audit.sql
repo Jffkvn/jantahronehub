@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(10);
+select plan(12);
 
 -- 1. Setup checks
 select has_function('public', 'record_report_export', array['text', 'text'], 'record_report_export function exists');
@@ -13,14 +13,16 @@ insert into auth.users (id, email)
 values
   ('90000000-0000-0000-0000-000000000001', 'cfo@example.invalid'),
   ('90000000-0000-0000-0000-000000000002', 'md@example.invalid'),
-  ('90000000-0000-0000-0000-000000000003', 'coord@example.invalid')
+  ('90000000-0000-0000-0000-000000000003', 'coord@example.invalid'),
+  ('90000000-0000-0000-0000-000000000004', 'hr@example.invalid')
 on conflict (id) do nothing;
 
 insert into public.profiles (id, display_name)
 values
   ('90000000-0000-0000-0000-000000000001', 'Reports CFO'),
   ('90000000-0000-0000-0000-000000000002', 'Reports MD'),
-  ('90000000-0000-0000-0000-000000000003', 'Reports Coord')
+  ('90000000-0000-0000-0000-000000000003', 'Reports Coord'),
+  ('90000000-0000-0000-0000-000000000004', 'Reports HR')
 on conflict (id) do nothing;
 
 insert into public.user_roles (profile_id, role_id)
@@ -28,7 +30,8 @@ select assigned.profile_id, role.id
 from (values
   ('90000000-0000-0000-0000-000000000001'::uuid, 'cfo'::text),
   ('90000000-0000-0000-0000-000000000002'::uuid, 'managing_director'::text),
-  ('90000000-0000-0000-0000-000000000003'::uuid, 'coordinator'::text)
+  ('90000000-0000-0000-0000-000000000003'::uuid, 'coordinator'::text),
+  ('90000000-0000-0000-0000-000000000004'::uuid, 'hr_admin'::text)
 ) assigned(profile_id, role_key)
 join public.roles role on role.key = assigned.role_key
 on conflict do nothing;
@@ -110,5 +113,26 @@ select ok(
   NOT public.has_permission('reports.view'),
   'Coordinator does not have reports.view permission'
 );
+
+select set_config('request.jwt.claims', '{"sub":"90000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+select ok(
+  public.has_permission('reports.view'),
+  'HR administrator has reports.view permission'
+);
+
+select ok(
+  public.has_permission('reports.export'),
+  'HR administrator has reports.export permission'
+);
+
+do $$
+declare
+  diagnostic text;
+begin
+  for diagnostic in select * from finish() loop
+    raise exception using message = 'pgTAP failure: ' || diagnostic;
+  end loop;
+end
+$$;
 
 rollback;

@@ -92,6 +92,8 @@ interface DBDepartmentRelation {
 }
 interface DBPeriodRow {
   department_id: string | null
+  start_date: string
+  end_date: string | null
   departments: DBDepartmentRelation | DBDepartmentRelation[] | null
 }
 interface DBEmployeeRow {
@@ -145,10 +147,11 @@ interface DBAssetRow {
   item_categories: { name: string } | { name: string }[] | null
   warehouses: { name: string } | { name: string }[] | null
 }
-interface DBAssetMovement {
+interface DBAssetCustody {
   equipment_asset_id: string | null
-  created_at: string
-  profiles_performed_by: { display_name: string } | { display_name: string }[] | null
+  issued_at: string
+  profiles_custodian: { display_name: string } | { display_name: string }[] | null
+  warehouses_issued_from: { name: string } | { name: string }[] | null
 }
 
 interface DBProjectRow {
@@ -158,9 +161,42 @@ interface DBProjectRow {
   status: string
   health_status: string
   project_assignments: {
-    role: string
+    role_on_project: string
     profiles: { display_name: string } | { display_name: string }[] | null
   }[] | null
+}
+
+interface LstPayrollLine {
+  kind?: unknown
+  code?: unknown
+  amount?: unknown
+}
+
+export interface LstPayrollItem {
+  employee_number?: unknown
+  employee_name?: unknown
+  net_pay?: unknown
+  payroll_line_items?: unknown
+}
+
+export function buildVerifiedLstExportRows(items: LstPayrollItem[]): Record<string, unknown>[] {
+  return items.flatMap((item) => {
+    const lines = Array.isArray(item.payroll_line_items)
+      ? item.payroll_line_items as LstPayrollLine[]
+      : []
+    const lstDeduction = lines
+      .filter((line) => line.kind === 'deduction' && String(line.code || '').trim().toUpperCase() === 'LST')
+      .reduce((sum, line) => sum + Number(line.amount || 0), 0)
+
+    if (lstDeduction <= 0) return []
+
+    return [{
+      'Employee Number': String(item.employee_number || ''),
+      'Employee Name': String(item.employee_name || ''),
+      'Net Salary (UGX)': Number(item.net_pay || 0),
+      'LST Deducted (UGX)': lstDeduction
+    }]
+  })
 }
 
 interface DBCashRequest {
@@ -208,7 +244,7 @@ export const reportsApi = {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('employees')
-      .select('id, archived_at, employment_periods(department_id, departments(name))')
+      .select('id, archived_at, employment_periods(department_id, start_date, end_date, departments(name))')
       .is('archived_at', null)
 
     if (error) throw error
@@ -217,18 +253,21 @@ export const reportsApi = {
     let totalHeadcount = 0
     let activeCount = 0
     const deptMap = new Map<string, number>()
+    const today = new Date().toISOString().slice(0, 10)
 
     for (const emp of (employees || [])) {
       totalHeadcount++
-      activeCount++
 
       const periods = emp.employment_periods || []
-      if (periods.length > 0) {
-        const deptRelation = periods[0]?.departments
+      const currentPeriod = [...periods]
+        .sort((a, b) => b.start_date.localeCompare(a.start_date))
+        .find((period) => period.start_date <= today && (!period.end_date || period.end_date >= today))
+
+      if (currentPeriod) {
+        activeCount++
+        const deptRelation = currentPeriod.departments
         const deptName = (Array.isArray(deptRelation) ? deptRelation[0]?.name : deptRelation?.name) || 'Unassigned'
         deptMap.set(deptName, (deptMap.get(deptName) || 0) + 1)
-      } else {
-        deptMap.set('Unassigned', (deptMap.get('Unassigned') || 0) + 1)
       }
     }
 
@@ -308,8 +347,7 @@ export const reportsApi = {
         const mWarehouseName = (Array.isArray(whRelation) ? whRelation[0]?.name : whRelation?.name) || ''
         if (m.consumable_item_id === item.id && mWarehouseName) {
           const key = `${mWarehouseName}_${item.id}`
-          const isAdd = ['receipt', 'return', 'adjustment_add'].includes(m.movement_type)
-          const qtyChange = isAdd ? Number(m.quantity) : -Number(m.quantity)
+          const qtyChange = Number(m.quantity)
 
           const existing = balancesMap.get(key)
           if (existing) {
@@ -344,28 +382,37 @@ export const reportsApi = {
 
     if (error) throw error
 
-    const { data: movementsData, error: movementsError } = await supabase
-      .from('stock_movements')
-      .select('equipment_asset_id, created_at, profiles_performed_by:profiles!performed_by(display_name)')
-      .eq('movement_type', 'issue')
-      .order('created_at', { ascending: false })
+    const { data: custodyData, error: custodyError } = await supabase
+      .from('asset_custody')
+      .select(`
+        equipment_asset_id, issued_at,
+        profiles_custodian:profiles!custodian_profile_id (display_name),
+        warehouses_issued_from:warehouses!issued_from_warehouse_id (name)
+      `)
+      .is('ended_at', null)
+      .order('issued_at', { ascending: false })
 
-    if (movementsError) throw movementsError
+    if (custodyError) throw custodyError
 
     const assets = assetsData as unknown as DBAssetRow[]
-    const movements = movementsData as unknown as DBAssetMovement[]
+    const custody = custodyData as unknown as DBAssetCustody[]
 
     return (assets || []).map((asset) => {
-      const activeIssue = movements?.find(m => m.equipment_asset_id === asset.id)
+      const activeCustody = custody?.find((row) => row.equipment_asset_id === asset.id)
 
       const catRelation = asset.item_categories
       const assetCategoryName = (Array.isArray(catRelation) ? catRelation[0]?.name : catRelation?.name) || 'General'
 
       const whRelation = asset.warehouses
-      const assetWarehouseName = (Array.isArray(whRelation) ? whRelation[0]?.name : whRelation?.name) || 'Checked Out'
+      const issuedFromRelation = activeCustody?.warehouses_issued_from
+      const assetWarehouseName = activeCustody
+        ? (Array.isArray(issuedFromRelation) ? issuedFromRelation[0]?.name : issuedFromRelation?.name) || 'Checked Out'
+        : (Array.isArray(whRelation) ? whRelation[0]?.name : whRelation?.name) || null
 
-      const profRelation = activeIssue?.profiles_performed_by
-      const assetCustodianName = activeIssue ? ((Array.isArray(profRelation) ? profRelation[0]?.display_name : profRelation?.display_name) || null) : null
+      const profRelation = activeCustody?.profiles_custodian
+      const assetCustodianName = activeCustody
+        ? (Array.isArray(profRelation) ? profRelation[0]?.display_name : profRelation?.display_name) || null
+        : null
 
       return {
         serialNumber: asset.serial_number,
@@ -373,7 +420,7 @@ export const reportsApi = {
         categoryName: assetCategoryName,
         status: asset.status,
         custodianName: assetCustodianName,
-        checkedOutAt: activeIssue?.created_at || null,
+        checkedOutAt: activeCustody?.issued_at || null,
         warehouseName: assetWarehouseName,
         conditionNotes: asset.condition_notes
       }
@@ -386,7 +433,7 @@ export const reportsApi = {
       .from('projects')
       .select(`
         id, name, site_location, status, health_status,
-        project_assignments (role, profiles (display_name))
+        project_assignments (role_on_project, profiles (display_name))
       `)
       .order('name')
 
@@ -395,7 +442,7 @@ export const reportsApi = {
     const { data: updates, error: updatesError } = await supabase
       .from('daily_updates')
       .select('project_id, update_date')
-      .eq('status', 'submitted')
+      .in('status', ['submitted', 'endorsed'])
 
     if (updatesError) throw updatesError
 
@@ -405,11 +452,11 @@ export const reportsApi = {
       const pUpdates = updates?.filter(u => u.project_id === p.id) || []
       const assignments = p.project_assignments || []
 
-      const pmAssign = assignments.find((a) => a.role === 'project_manager')
+      const pmAssign = assignments.find((a) => a.role_on_project === 'pm')
       const pmProf = pmAssign?.profiles
       const pm = (Array.isArray(pmProf) ? pmProf[0]?.display_name : pmProf?.display_name) || null
 
-      const coordAssign = assignments.find((a) => a.role === 'coordinator')
+      const coordAssign = assignments.find((a) => a.role_on_project === 'coordinator')
       const coordProf = coordAssign?.profiles
       const coord = (Array.isArray(coordProf) ? coordProf[0]?.display_name : coordProf?.display_name) || null
 

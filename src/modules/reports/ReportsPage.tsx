@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { reportsApi } from './api/reports'
+import { buildVerifiedLstExportRows, reportsApi } from './api/reports'
 import { useAuth } from '../auth/AuthProvider'
 import { getSupabaseClient } from '../../lib/supabase/client'
 import { Button } from '../../components/ui/Button'
@@ -26,6 +26,7 @@ export default function ReportsPage() {
   // Tab State
   const [activeTab, setActiveTab] = useState<'workforce' | 'payroll' | 'inventory' | 'projects' | 'cash'>('workforce')
   const [selectedPayrollPeriod, setSelectedPayrollPeriod] = useState<string>('')
+  const [exportFeedback, setExportFeedback] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
 
   // Queries
   const { data: workforce, isLoading: isLoadingWorkforce } = useQuery({
@@ -91,6 +92,7 @@ export default function ReportsPage() {
 
   // Export functions helper
   const triggerExcelExport = async (reportName: string, sheetName: string, data: Record<string, unknown>[]) => {
+    setExportFeedback(null)
     try {
       // Audit export in database
       await auditExportMutation.mutateAsync({ reportName, format: 'excel' })
@@ -122,9 +124,10 @@ export default function ReportsPage() {
       XLSX.writeFile(workbook, `Egypro-${reportName}-${new Date().toISOString().slice(0, 10)}.xlsx`, {
         compression: true
       })
+      setExportFeedback({ tone: 'success', message: `${reportName} was exported successfully.` })
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Export failed'
-      alert(errorMsg)
+      setExportFeedback({ tone: 'danger', message: errorMsg })
     }
   }
 
@@ -165,6 +168,7 @@ export default function ReportsPage() {
     const run = payrollSummaries.find(p => p.id === selectedPayrollPeriod)
     if (!run) return
 
+    setExportFeedback(null)
     try {
       // Call standard record export for auditing
       await auditExportMutation.mutateAsync({ reportName: `PAYE-${run.label}`, format: 'excel' })
@@ -195,9 +199,10 @@ export default function ReportsPage() {
       const sheet = XLSX.utils.json_to_sheet(rows)
       XLSX.utils.book_append_sheet(workbook, sheet, 'PAYE Return')
       XLSX.writeFile(workbook, `Egypro-PAYE-Return-${run.label.replace(/\s+/g, '-')}.xlsx`)
+      setExportFeedback({ tone: 'success', message: `PAYE return for ${run.label} was exported successfully.` })
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'PAYE Return Export Failed'
-      alert(errorMsg)
+      setExportFeedback({ tone: 'danger', message: errorMsg })
     }
   }
 
@@ -207,6 +212,7 @@ export default function ReportsPage() {
     const run = payrollSummaries.find(p => p.id === selectedPayrollPeriod)
     if (!run) return
 
+    setExportFeedback(null)
     try {
       await auditExportMutation.mutateAsync({ reportName: `NSSF-${run.label}`, format: 'excel' })
 
@@ -238,9 +244,10 @@ export default function ReportsPage() {
       const sheet = XLSX.utils.json_to_sheet(rows)
       XLSX.utils.book_append_sheet(workbook, sheet, 'NSSF Return')
       XLSX.writeFile(workbook, `Egypro-NSSF-Return-${run.label.replace(/\s+/g, '-')}.xlsx`)
+      setExportFeedback({ tone: 'success', message: `NSSF schedule for ${run.label} was exported successfully.` })
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'NSSF Return Export Failed'
-      alert(errorMsg)
+      setExportFeedback({ tone: 'danger', message: errorMsg })
     }
   }
 
@@ -250,36 +257,32 @@ export default function ReportsPage() {
     const run = payrollSummaries.find(p => p.id === selectedPayrollPeriod)
     if (!run) return
 
+    setExportFeedback(null)
     try {
-      await auditExportMutation.mutateAsync({ reportName: `LST-${run.label}`, format: 'excel' })
-
       const supabase = getSupabaseClient()
       const { data: items, error } = await supabase
         .from('payroll_items')
-        .select('employee_number, employee_name, net_pay, other_deductions')
+        .select('employee_number, employee_name, net_pay, payroll_line_items(kind, code, amount)')
         .eq('run_id', run.id)
 
       if (error) throw error
 
-      // Filters employees with LST deductions recorded
-      const rows = (items || []).map((item: unknown) => {
-        const itemObj = item as Record<string, unknown>
-        return {
-          'Employee Number': String(itemObj.employee_number),
-          'Employee Name': String(itemObj.employee_name),
-          'Net Salary (UGX)': Number(itemObj.net_pay),
-          'LST Deducted (UGX)': Number(itemObj.other_deductions) > 0 ? 20000 : 0 // standard Kampala local service tax rate
-        }
-      })
+      const rows = buildVerifiedLstExportRows(items || [])
+      if (rows.length === 0) {
+        throw new Error(`No explicit LST deduction lines were recorded for ${run.label}. Miscellaneous deductions cannot be exported as LST.`)
+      }
+
+      await auditExportMutation.mutateAsync({ reportName: `LST-${run.label}`, format: 'excel' })
 
       const XLSX = await import('@e965/xlsx')
       const workbook = XLSX.utils.book_new()
       const sheet = XLSX.utils.json_to_sheet(rows)
       XLSX.utils.book_append_sheet(workbook, sheet, 'LST Return')
       XLSX.writeFile(workbook, `Egypro-LST-Return-${run.label.replace(/\s+/g, '-')}.xlsx`)
+      setExportFeedback({ tone: 'success', message: `LST return for ${run.label} was exported successfully.` })
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'LST Return Export Failed'
-      alert(errorMsg)
+      setExportFeedback({ tone: 'danger', message: errorMsg })
     }
   }
 
@@ -372,6 +375,23 @@ export default function ReportsPage() {
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Verified operational statistics, exceptions tracking, and statutory exports from canonical ledgers.</p>
         </div>
       </div>
+
+      {exportFeedback && (
+        <div
+          role={exportFeedback.tone === 'danger' ? 'alert' : 'status'}
+          aria-live="polite"
+          className="oh-card"
+          style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderLeft: `4px solid var(--color-${exportFeedback.tone})`,
+            color: `var(--color-${exportFeedback.tone})`,
+            fontSize: '0.875rem',
+            fontWeight: 600
+          }}
+        >
+          {exportFeedback.message}
+        </div>
+      )}
 
       {/* Tab select headers */}
       <div className="oh-portal-tabs" aria-label="Governance sections" style={{ marginBottom: 'var(--space-4)' }}>
