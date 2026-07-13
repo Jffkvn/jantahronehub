@@ -1,7 +1,7 @@
-import { AlertTriangle, ArrowLeft, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import {
   buildHistoricalPayrollPreview,
@@ -85,9 +85,7 @@ export function HistoricalPayrollMigrationPage({
 
   return (
     <section className="oh-workspace-page">
-      <Link className="oh-back-link" to="/hr/payroll">
-        <ArrowLeft size={16} /> Payroll runs
-      </Link>
+      <BackLink to="/hr/payroll">Payroll runs</BackLink>
       <header className="oh-page-header">
         <div>
           <p>Protected migration</p>

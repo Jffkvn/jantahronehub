@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, Download, LockKeyhole, WalletCards } from 'lucide-react'
+import { CheckCircle2, Download, LockKeyhole, WalletCards } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
@@ -16,7 +17,7 @@ const money=(value:number)=>new Intl.NumberFormat('en-UG',{style:'currency',curr
 export function PayrollRunPage({runId,api=payrollApi,permissions=[]}:{runId:string;api?:PayrollApi;permissions?:string[]}){
  const query=useQuery({queryKey:['payroll-run',runId],queryFn:()=>api.get(runId)})
  if(query.isLoading)return <section className="oh-workspace-page"><p role="status">Loading payroll run…</p></section>
- if(!query.data)return <section className="oh-workspace-page"><EmptyPayroll/></section>
+ if(!query.data)return <section className="oh-workspace-page"><BackLink to="/hr/payroll">Payroll runs</BackLink><EmptyPayroll/></section>
  const revision=query.data.items.map((item)=>`${item.id}:${item.percentOfMonthWorked}:${item.overtimeHours}:${item.lineItems.length}`).join('|')
  return <PayrollRunContent key={`${query.data.status}:${revision}`} run={query.data} runId={runId} api={api} permissions={permissions}/>
 }
@@ -29,7 +30,7 @@ function PayrollRunContent({run,runId,api,permissions}:{run:PayrollRun;runId:str
  const deferredCount=locked?0:run.items.length-visibleItems.length
  const exportCsv=async(kind:'bank'|'mtn'|'nssf'|'paye'|'wht')=>{await api.recordExport(run.id,null,kind);const factories={bank:bankPaymentCsv,mtn:mtnBulkPayCsv,nssf:nssfCsv,paye:payeCsv,wht:whtCsv};downloadText(factories[kind](run),`Egypro-${kind.toUpperCase()}-${run.periodStart.slice(0,7)}.csv`)}
  const exportPayslip=async(item:PayrollRun['items'][number])=>{await api.recordExport(run.id,item.id,'payslip');const {downloadPayslip}=await import('../exports/payslip');await downloadPayslip(run,item)}
- return <section className="oh-workspace-page"><Link className="oh-text-link" to="/hr/payroll"><ArrowLeft size={15}/>Back to payroll</Link><header className="oh-page-header payroll-run-header"><div><p>{run.runType} payroll · run {run.runNumber}</p><h1>{run.periodLabel}</h1><span>{locked?'Approved and locked — corrections require a linked new run.':'Draft — review every employee before HR approval.'}</span></div><StatusBadge tone={locked?'success':'warning'}>{run.status}</StatusBadge></header>
+ return <section className="oh-workspace-page"><BackLink to="/hr/payroll">Payroll runs</BackLink><header className="oh-page-header payroll-run-header"><div><p>{run.runType} payroll · run {run.runNumber}</p><h1>{run.periodLabel}</h1><span>{locked?'Approved and locked — corrections require a linked new run.':'Draft — review every employee before HR approval.'}</span></div><StatusBadge tone={locked?'success':'warning'}>{run.status}</StatusBadge></header>
  <div className="payroll-summary">{[['Gross',run.totalGross],['Deductions',run.totalDeductions],['Net pay',run.totalNet],['Employees',run.items.length]].map(([label,value])=><article key={String(label)}><span>{label}</span><strong>{label==='Employees'?value:money(Number(value))}</strong></article>)}</div>
  <div className="payroll-actions">{!locked&&permissions.includes('payroll.prepare')&&<><input aria-label="Change reason" placeholder="Reason for draft changes" value={reason} onChange={(e)=>setReason(e.target.value)}/><Button variant="secondary" disabled={reason.trim().length<3||save.isPending||!draft.length||!dirty} onClick={()=>save.mutate()}>Save draft</Button></>}{!locked&&permissions.includes('payroll.approve')&&<Button disabled={dirty} onClick={()=>setApproveOpen(true)}><CheckCircle2 size={17}/>Approve payroll</Button>}{locked&&permissions.includes('payroll.prepare')&&<Button variant="secondary" onClick={()=>{setReason('');setAmendEmployees([]);setAmendOpen(true)}}>Create supplemental / correction</Button>}{locked&&permissions.includes('payroll.export')&&<div className="payroll-export-grid"><Button variant="secondary" onClick={()=>void api.recordExport(run.id,null,'master').then(()=>downloadMasterPayroll(run))}><Download size={16}/>Master Excel</Button>{(['bank','mtn','nssf','paye','wht'] as const).map((kind)=><Button key={kind} variant="secondary" onClick={()=>void exportCsv(kind)}>{kind.toUpperCase()} CSV</Button>)}</div>}{locked&&permissions.includes('payroll.record_payment')&&!run.payment&&<Button onClick={()=>setPaymentOpen(true)}><WalletCards size={17}/>Record payment</Button>}</div>
  {dirty&&<p role="status">Save changes before approval.</p>}

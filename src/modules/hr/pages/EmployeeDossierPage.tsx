@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Archive, CalendarClock, Mail, Pencil, Phone, UserRound } from 'lucide-react'
+import { Archive, CalendarClock, Mail, Pencil, Phone, UserRound } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { BackLink } from '../../../components/ui/BackLink'
 import { FormError } from '../../../components/ui/FormError'
 import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/ui/Modal'
@@ -34,11 +35,11 @@ export function EmployeeDossierPage({ employeeId, api = employeeApi }: { employe
   const archive = useMutation({ mutationFn: (reason: string) => api.archive(employeeId, reason), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['employees'] }); navigate('/hr/employees') } })
 
   if (employee.isLoading) return <p role="status">Opening employee dossier…</p>
-  if (employee.isError || !employee.data) return <section className="oh-workspace-page"><h1>Employee unavailable</h1><Link to="/hr/employees">Return to directory</Link></section>
+  if (employee.isError || !employee.data) return <section className="oh-workspace-page"><BackLink to="/hr/employees">Employee directory</BackLink><h1>Employee unavailable</h1></section>
   const record = employee.data
 
   return <section className="oh-workspace-page">
-    <Link className="oh-back-link" to="/hr/employees"><ArrowLeft size={16} /> Employee directory</Link>
+    <BackLink to="/hr/employees">Employee directory</BackLink>
     <header className="oh-dossier-header"><div className="oh-avatar"><UserRound aria-hidden="true" /></div><div><p>{record.employeeNumber}</p><h1>{record.legalName}</h1><div className="oh-dossier-meta"><StatusBadge tone={record.active ? 'success' : 'neutral'}>{record.active ? 'Active' : 'Inactive'}</StatusBadge><span>{record.jobTitleName ?? 'Role not assigned'}</span><span>{record.departmentName ?? 'Department not assigned'}</span></div></div><div className="oh-dossier-actions"><Button variant="secondary" onClick={() => setEditing(true)}><Pencil size={16} /> Edit employee</Button><Button variant="secondary" onClick={() => setOffboarding(true)}><CalendarClock size={16} /> Record exit</Button><Button variant="danger" onClick={() => setArchiving(true)}><Archive size={16} /> Archive employee</Button></div></header>
     <div className="oh-dossier-grid">
       <article className="oh-info-card"><h2>Personal & contact</h2><dl><div><dt><Mail size={16} /> Company email</dt><dd>{record.companyEmail ?? 'Not provided'}</dd></div><div><dt>Personal email</dt><dd>{record.personalEmail ?? 'Not provided'}</dd></div><div><dt><Phone size={16} /> Phone</dt><dd>{record.workPhone ?? 'Not provided'}</dd></div><div><dt>NIN / Passport</dt><dd>{record.nationalId ?? 'Not provided'}</dd></div></dl></article>

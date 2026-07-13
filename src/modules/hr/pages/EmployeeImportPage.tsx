@@ -1,7 +1,7 @@
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Upload } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { employeeImportApi, type EmployeeImportApi } from '../api/employeeImports'
 import { parseEmployeeWorkbookInWorker, validateEmployeeRows, type RawEmployeeRow, type ValidatedImportRow } from '../import/employeeParser'
@@ -16,7 +16,7 @@ export function EmployeeImportPage({ api = employeeImportApi, parse = parseEmplo
   }
   async function confirm() { if (!file || errors.length) return; setBusy(true); try { setCompleted(await api.commit(file, rows)) } finally { setBusy(false) } }
   const creates = rows.filter((row) => row.action === 'create').length; const updates = rows.filter((row) => row.action === 'update').length
-  return <section className="oh-workspace-page"><Link className="oh-back-link" to="/hr/employees"><ArrowLeft size={16} /> Employee directory</Link><header className="oh-page-header"><div><p>Bulk operations</p><h1>Employee import & export</h1><span>Validate and preview every change before it reaches live records.</span></div><div className="oh-dossier-actions"><Button variant="secondary" onClick={() => void downloadTemplate()}><Download size={17} /> Download template</Button><Button variant="secondary" onClick={() => void api.exportEmployees()}><Download size={17} /> Export employees</Button></div></header>
+  return <section className="oh-workspace-page"><BackLink to="/hr/employees">Employee directory</BackLink><header className="oh-page-header"><div><p>Bulk operations</p><h1>Employee import & export</h1><span>Validate and preview every change before it reaches live records.</span></div><div className="oh-dossier-actions"><Button variant="secondary" onClick={() => void downloadTemplate()}><Download size={17} /> Download template</Button><Button variant="secondary" onClick={() => void api.exportEmployees()}><Download size={17} /> Export employees</Button></div></header>
     <label className="oh-upload-zone"><Upload size={28} /><strong>Upload completed employee template</strong><span>.xlsx only, maximum 5 MB</span><input aria-label="Employee workbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => { const next = event.target.files?.[0]; if (next) void handleFile(next) }} /></label>
     {busy ? <p role="status">Validating workbook…</p> : null}
     {errors.length ? <article className="oh-import-errors"><h2><AlertTriangle size={19} /> Correct these rows</h2>{errors.map((error, index) => <p key={`${error.rowNumber}-${error.field}-${index}`}><strong>{error.rowNumber ? `Row ${error.rowNumber}` : 'File'} · {error.field.replaceAll('_', ' ')}</strong><span>{error.message}</span></p>)}<div className="oh-form-actions"><Button variant="secondary" onClick={() => void downloadEmployeeErrorReport(errors)}><Download size={16} /> Download error report</Button></div></article> : null}

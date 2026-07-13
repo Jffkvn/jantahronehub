@@ -28,3 +28,15 @@ test('blocks approval while draft edits are unsaved and visibly defers employees
   expect(screen.queryByText('Amina Nsubuga')).not.toBeInTheDocument()
   expect(screen.getByText(/1 employee deferred/i)).toBeInTheDocument()
 })
+
+test('provides a stable payroll-list destination when a run cannot be loaded', async () => {
+  const api = createApi()
+  vi.mocked(api.get).mockRejectedValue(new Error('Payroll run not found'))
+
+  renderWithProviders(
+    <PayrollRunPage runId="missing-run" api={api} permissions={['payroll.read']} />,
+  )
+
+  expect(await screen.findByRole('heading', { name: /payroll run not found/i })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Payroll runs' })).toHaveAttribute('href', '/hr/payroll')
+})
