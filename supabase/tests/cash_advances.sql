@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(27);
+select plan(32);
 
 -- 1. Setup checks
 select has_table('public', 'cash_advance_requests', 'cash_advance_requests table exists');
@@ -390,6 +390,144 @@ select throws_ok(
   '42501',
   'Unauthorized: You cannot view another user cash advance status',
   'Project manager cannot read another employee outstanding-advance status'
+);
+
+-- Accounting invariants use independent advances so a failing guard cannot alter another case.
+reset role;
+create temporary table cash_invariant_targets (
+  case_key text primary key,
+  advance_id uuid not null
+) on commit drop;
+create temporary table cash_invariant_expenses (
+  case_key text primary key,
+  expense_id uuid not null
+) on commit drop;
+grant select, insert on cash_invariant_targets to authenticated;
+grant select, insert on cash_invariant_expenses to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+insert into cash_invariant_targets (case_key, advance_id)
+values
+  ('over_disbursement', public.rpc_request_cash_advance(
+    '90000000-0000-0000-0000-000000000099',
+    '80000000-0000-0000-0000-000000000002',
+    100000.00,
+    'Invariant over-disbursement'
+  )),
+  ('blank_reference', public.rpc_request_cash_advance(
+    '90000000-0000-0000-0000-000000000099',
+    '80000000-0000-0000-0000-000000000002',
+    100000.00,
+    'Invariant blank reference'
+  )),
+  ('expense_limit', public.rpc_request_cash_advance(
+    '90000000-0000-0000-0000-000000000099',
+    '80000000-0000-0000-0000-000000000002',
+    100000.00,
+    'Invariant expense limit'
+  )),
+  ('return_limit', public.rpc_request_cash_advance(
+    '90000000-0000-0000-0000-000000000099',
+    '80000000-0000-0000-0000-000000000002',
+    100000.00,
+    'Invariant return limit'
+  )),
+  ('rejection_reason', public.rpc_request_cash_advance(
+    '90000000-0000-0000-0000-000000000099',
+    '80000000-0000-0000-0000-000000000002',
+    100000.00,
+    'Invariant rejection reason'
+  ));
+
+select public.rpc_approve_cash_advance(target.advance_id, null)
+from cash_invariant_targets target;
+
+select public.rpc_disburse_cash_advance(target.advance_id, 100000.00, 'VALID-INVARIANT-REFERENCE')
+from cash_invariant_targets target
+where target.case_key in ('expense_limit', 'return_limit', 'rejection_reason');
+
+select throws_ok(
+  format(
+    'select public.rpc_disburse_cash_advance(%L, 125000.00, %L)',
+    (select advance_id from cash_invariant_targets where case_key = 'over_disbursement'),
+    'OVER-DISBURSEMENT'
+  ),
+  '22023',
+  'Validation: Disbursement amount cannot exceed amount requested',
+  'CFO cannot disburse more than the approved request amount'
+);
+
+select throws_ok(
+  format(
+    'select public.rpc_disburse_cash_advance(%L, 100000.00, %L)',
+    (select advance_id from cash_invariant_targets where case_key = 'blank_reference'),
+    '   '
+  ),
+  '22023',
+  'Validation: Disbursement reference is required',
+  'Cash disbursement requires a non-empty payment reference'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_submit_cash_expense(%L, current_date, %L, 125000.00, %L, %L, null, false, null)',
+    (select advance_id from cash_invariant_targets where case_key = 'expense_limit'),
+    'supplies',
+    'Invariant Vendor',
+    'Expense exceeds available advance'
+  ),
+  '22023',
+  'Validation: Expense amount exceeds outstanding cash advance balance',
+  'Employee cannot submit an expense above the outstanding advance balance'
+);
+
+insert into cash_invariant_expenses (case_key, expense_id)
+select
+  'rejection_reason',
+  public.rpc_submit_cash_expense(
+    target.advance_id,
+    current_date,
+    'supplies',
+    10000.00,
+    'Review Vendor',
+    'Valid expense awaiting review',
+    null,
+    false,
+    null
+  )
+from cash_invariant_targets target
+where target.case_key = 'rejection_reason';
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_return_cash(%L, current_date, 125000.00, %L, %L)',
+    (select advance_id from cash_invariant_targets where case_key = 'return_limit'),
+    'OVER-RETURN',
+    'Return exceeds available advance'
+  ),
+  '22023',
+  'Validation: Returned amount exceeds outstanding cash advance balance',
+  'CFO cannot record returned cash above the outstanding advance balance'
+);
+
+select throws_ok(
+  format(
+    'select public.rpc_review_cash_expense(%L, false, null)',
+    (select expense_id from cash_invariant_expenses where case_key = 'rejection_reason')
+  ),
+  '22023',
+  'Validation: Rejection reason is required',
+  'Rejecting a cash expense requires a reason'
 );
 
 rollback;
