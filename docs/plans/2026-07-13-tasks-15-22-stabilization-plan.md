@@ -220,7 +220,7 @@
 7. Run focused HR/payroll tests.
 8. Commit: `feat: standardize HR and payroll navigation`.
 
-## Task 10: Refine HR and Payroll Visual Hierarchy
+## Task 10: Refine Cross-Module Operational Visual Hierarchy
 
 **Files:**
 - Modify: `src/styles/global.css`
@@ -229,8 +229,12 @@
 - Modify: `src/modules/payroll/pages/PayrollRunPage.tsx`
 - Modify: `src/modules/payroll/pages/PayrollRunsPage.tsx`
 - Modify: `src/modules/hr/pages/EmployeeDirectoryPage.tsx`
+- Modify: `src/modules/cash/pages/CashAdvancesPage.tsx`
+- Modify: `src/modules/cash/pages/AdvanceDetailPage.tsx`
+- Modify: `src/modules/reports/ReportsPage.tsx`
 - Modify: `src/app/router.tsx`
 - Create: `src/app/HrPreview.tsx`
+- Read: `docs/verification/UI_AUDIT_TASK_10.md`
 - Modify: `e2e/payroll.spec.ts`
 - Create: `e2e/hr-ui.spec.ts`
 
@@ -238,14 +242,17 @@
 
 1. Add development/e2e preview routes containing representative HR directory, payroll list and payroll detail states without production mock fallbacks.
 2. Add failing Playwright assertions for shared navigation, compact page-title scale, non-overflowing forms and readable mobile cards.
-3. Reduce normal page-title sizing to approximately `2rem` desktop and `1.65rem` mobile while retaining the dashboard display scale.
-4. Normalize inputs, selects, buttons and adjustment rows through existing OneHub primitives.
-5. Tighten summary-card and employee-card spacing without reducing touch targets below 44px.
-6. Clarify employee identity, inputs, adjustments and calculated totals as distinct visual groups.
-7. Validate 1440px desktop, 1024px tablet and 390px mobile layouts.
-8. Capture review screenshots and inspect them for truncation, hierarchy, focus and action placement.
-9. Run focused unit tests and Playwright.
-10. Commit: `style: refine HR and payroll usability`.
+3. Define shared section-surface, card and KPI-band patterns; resolve undefined semantic design tokens.
+4. Normalize anchor and button tabs so native browser borders never leak into the design.
+5. Reduce normal page-title sizing to approximately `2rem` desktop and `1.65rem` mobile while retaining the dashboard display scale.
+6. Normalize inputs, selects, buttons and adjustment rows through existing OneHub primitives.
+7. Tighten summary-card and employee-card spacing without reducing touch targets below 44px.
+8. Clarify employee identity, payroll inputs, cash metrics, report statistics and calculated totals as distinct visual groups.
+9. Replace repeated inline visual styling with shared classes where the concepts are equivalent.
+10. Validate HR, payroll, inventory, cash, tracker and reports at 1440px desktop, 1024px tablet and 390px mobile.
+11. Capture review screenshots and inspect them for containment, truncation, hierarchy, focus and action placement.
+12. Run focused unit tests and Playwright.
+13. Commit: `style: refine OneHub operational usability`.
 
 ## Task 11: Performance and Full Stabilization Verification
 

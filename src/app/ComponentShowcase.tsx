@@ -33,6 +33,23 @@ export function ComponentShowcase() {
       </header>
 
       <div className="oh-showcase__grid">
+        <section className="oh-showcase__card oh-showcase__card--wide">
+          <h2>Module navigation</h2>
+          <nav className="oh-portal-tabs" aria-label="Module navigation preview">
+            {['Overview', 'Consumables', 'Equipment', 'Requests', 'Ledger History', 'Bulk Tools'].map(
+              (label, index) => (
+                <a
+                  className={`oh-portal-tab${index === 0 ? ' oh-portal-tab--active' : ''}`}
+                  href={`#${label.toLowerCase().replaceAll(' ', '-')}`}
+                  key={label}
+                >
+                  {label}
+                </a>
+              ),
+            )}
+          </nav>
+        </section>
+
         <section className="oh-showcase__card">
           <h2>Actions</h2>
           <div className="oh-showcase__row">

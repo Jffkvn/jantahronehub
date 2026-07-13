@@ -20,3 +20,19 @@ test('uses a bottom bar and accessible drawer on mobile', async ({ page }) => {
   await page.getByRole('button', { name: 'Close navigation' }).click()
   await expect(page.getByRole('dialog', { name: 'Main navigation' })).toBeHidden()
 })
+
+test('keeps module tabs on one safely scrollable line on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/components')
+
+  const tabs = page.getByRole('navigation', { name: 'Module navigation preview' })
+  await expect(tabs).toBeVisible()
+  await expect(tabs).toHaveCSS('flex-wrap', 'nowrap')
+  await expect(tabs).toHaveCSS('overflow-x', 'auto')
+
+  const dimensions = await tabs.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }))
+  expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth)
+})

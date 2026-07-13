@@ -10,12 +10,12 @@ import { Layout, Package, Wrench, ClipboardList, History, FileSpreadsheet } from
 
 export default function WarehousePage() {
   const tabs = [
-    { to: 'overview', label: 'Overview', icon: Layout },
-    { to: 'consumables', label: 'Consumables', icon: Package },
-    { to: 'equipment', label: 'Equipment', icon: Wrench },
-    { to: 'requests', label: 'Requests', icon: ClipboardList },
-    { to: 'history', label: 'Ledger History', icon: History },
-    { to: 'bulk-tools', label: 'Bulk Tools', icon: FileSpreadsheet }
+    { to: '/inventory/overview', label: 'Overview', icon: Layout },
+    { to: '/inventory/consumables', label: 'Consumables', icon: Package },
+    { to: '/inventory/equipment', label: 'Equipment', icon: Wrench },
+    { to: '/inventory/requests', label: 'Requests', icon: ClipboardList },
+    { to: '/inventory/history', label: 'Ledger History', icon: History },
+    { to: '/inventory/bulk-tools', label: 'Bulk Tools', icon: FileSpreadsheet }
   ]
 
   return (
@@ -31,7 +31,7 @@ export default function WarehousePage() {
             }
             style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
           >
-            <tab.icon size={16} />
+            <tab.icon size={16} aria-hidden="true" />
             <span>{tab.label}</span>
           </NavLink>
         ))}
@@ -39,7 +39,7 @@ export default function WarehousePage() {
 
       {/* Routes Switch */}
       <Routes>
-        <Route index element={<Navigate to="overview" replace />} />
+        <Route index element={<Navigate to="/inventory/overview" replace />} />
         <Route path="overview" element={<OverviewPage />} />
         <Route path="consumables" element={<ConsumablesPage />} />
         <Route path="equipment" element={<EquipmentPage />} />
@@ -47,7 +47,7 @@ export default function WarehousePage() {
         <Route path="requests/:requestId" element={<RequestDetailPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="bulk-tools" element={<BulkToolsPage />} />
-        <Route path="*" element={<Navigate to="overview" replace />} />
+        <Route path="*" element={<Navigate to="/inventory/overview" replace />} />
       </Routes>
     </section>
   )

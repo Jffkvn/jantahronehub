@@ -890,8 +890,8 @@ textarea {
 .oh-import-errors { padding: var(--space-5); border: 1px solid var(--color-danger); border-radius: var(--radius-lg); background: var(--color-danger-bg); }
 .oh-import-errors h2 { display: flex; align-items: center; gap: var(--space-2); margin-top: 0; color: var(--color-danger); font-size: 1rem; }
 .oh-import-errors p { display: grid; grid-template-columns: minmax(9rem, auto) 1fr; gap: var(--space-4); margin: 0; padding: var(--space-3) 0; border-top: 1px solid rgb(185 28 28 / .15); }.oh-import-errors p span { color: var(--color-text-muted); }
-.oh-portal-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
-.oh-portal-tab { display: inline-flex; min-height: 2.4rem; align-items: center; padding: 0.55rem 0.9rem; border-radius: var(--radius-md); color: var(--color-text-muted); font-size: 0.86rem; font-weight: 750; text-decoration: none; }
+.oh-portal-tabs { display: flex; flex-wrap: nowrap; gap: var(--space-2); max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); scrollbar-width: thin; }
+.oh-portal-tab { display: inline-flex; min-height: 2.4rem; flex: 0 0 auto; align-items: center; padding: 0.55rem 0.9rem; border-radius: var(--radius-md); color: var(--color-text-muted); font-size: 0.86rem; font-weight: 750; text-decoration: none; }
 .oh-portal-tab:hover { color: var(--color-navy-800); background: var(--color-surface-muted); }
 .oh-portal-tab--active { color: var(--color-primary-700); background: var(--color-primary-50); }
 .oh-portal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }

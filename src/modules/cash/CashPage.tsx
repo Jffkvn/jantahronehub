@@ -8,22 +8,22 @@ export default function CashPage() {
     <section className="oh-workspace-page">
       <nav className="oh-portal-tabs" aria-label="Project Cash sections" style={{ marginBottom: 'var(--space-6)' }}>
         <NavLink
-          to="advances"
+          to="/cash/advances"
           className={({ isActive }) =>
             isActive ? 'oh-portal-tab oh-portal-tab--active' : 'oh-portal-tab'
           }
           style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
         >
-          <Landmark size={16} />
+          <Landmark size={16} aria-hidden="true" />
           <span>Advances Ledger</span>
         </NavLink>
       </nav>
 
       <Routes>
-        <Route index element={<Navigate to="advances" replace />} />
+        <Route index element={<Navigate to="/cash/advances" replace />} />
         <Route path="advances" element={<CashAdvancesPage />} />
         <Route path="advances/:advanceId" element={<AdvanceDetailPage />} />
-        <Route path="*" element={<Navigate to="advances" replace />} />
+        <Route path="*" element={<Navigate to="/cash/advances" replace />} />
       </Routes>
     </section>
   )
