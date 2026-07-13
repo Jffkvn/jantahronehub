@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(22);
+select plan(27);
 
 -- 1. Setup checks
 select has_table('public', 'cash_advance_requests', 'cash_advance_requests table exists');
@@ -259,6 +259,137 @@ select results_eq(
   ),
   $$ select 'completed'::text $$,
   'Request status is now completed'
+);
+
+-- Security regressions: workflow state must not be forgeable through table writes.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+    insert into public.cash_advance_requests (
+      project_id,
+      user_id,
+      amount_requested,
+      purpose,
+      status,
+      entered_by,
+      approved_by,
+      approved_at,
+      disbursed_by,
+      disbursed_at,
+      amount_disbursed,
+      disbursement_reference
+    ) values (
+      '90000000-0000-0000-0000-000000000099',
+      '80000000-0000-0000-0000-000000000002',
+      750000.00,
+      'Forged direct disbursement',
+      'disbursed',
+      '80000000-0000-0000-0000-000000000002',
+      '80000000-0000-0000-0000-000000000004',
+      now(),
+      '80000000-0000-0000-0000-000000000004',
+      now(),
+      750000.00,
+      'FORGED-DIRECT-REQUEST'
+    )
+  $$,
+  '42501',
+  'permission denied for table cash_advance_requests',
+  'Coordinator cannot forge an approved or disbursed request through a direct insert'
+);
+
+select throws_ok(
+  $$
+    insert into public.cash_advance_expenses (
+      cash_advance_id,
+      expense_date,
+      category,
+      amount,
+      vendor,
+      explanation,
+      status,
+      reviewed_by,
+      reviewed_at
+    ) values (
+      (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+      current_date,
+      'transport',
+      25000.00,
+      'Forged Vendor',
+      'Forged accepted expense',
+      'accepted',
+      '80000000-0000-0000-0000-000000000004',
+      now()
+    )
+  $$,
+  '42501',
+  'permission denied for table cash_advance_expenses',
+  'Coordinator cannot forge an accepted expense through a direct insert'
+);
+
+-- Even the CFO must use the audited return RPC rather than writing ledger rows directly.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+    insert into public.cash_advance_returns (
+      cash_advance_id,
+      return_date,
+      amount,
+      returned_by,
+      received_by,
+      receipt_reference,
+      notes
+    ) values (
+      (select id from public.cash_advance_requests where purpose = 'CFO direct advance' limit 1),
+      current_date,
+      1000.00,
+      '80000000-0000-0000-0000-000000000002',
+      '80000000-0000-0000-0000-000000000004',
+      'FORGED-DIRECT-RETURN',
+      'Direct write must be rejected'
+    )
+  $$,
+  '42501',
+  'permission denied for table cash_advance_returns',
+  'CFO cannot bypass the audited return RPC with a direct insert'
+);
+
+-- Security-definer balance helpers must not disclose another employee's finances.
+reset role;
+create temporary table cash_security_targets (
+  advance_id uuid not null
+) on commit drop;
+insert into cash_security_targets (advance_id)
+select id
+from public.cash_advance_requests
+where purpose = 'CFO direct advance'
+limit 1;
+grant select on cash_security_targets to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.get_cash_advance_balance(%L)',
+    (select advance_id from cash_security_targets limit 1)
+  ),
+  '42501',
+  'Unauthorized: You cannot view this cash advance balance',
+  'Project manager cannot read another employee cash advance balance'
+);
+
+select throws_ok(
+  $$ select public.has_outstanding_advances('80000000-0000-0000-0000-000000000002') $$,
+  '42501',
+  'Unauthorized: You cannot view another user cash advance status',
+  'Project manager cannot read another employee outstanding-advance status'
 );
 
 rollback;
