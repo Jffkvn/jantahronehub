@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(21);
+select plan(22);
 
 -- 1. Setup checks
 select has_table('public', 'cash_advance_requests', 'cash_advance_requests table exists');
@@ -100,155 +100,165 @@ select lives_ok(
   'CFO can request cash advance on behalf of coordinator'
 );
 
--- Let's retrieve the first cash advance ID
-declare
-  v_advance_id uuid;
-begin
-  select id into v_advance_id
-  from public.cash_advance_requests
-  where purpose = 'Site supplies transport'
-  limit 1;
+-- Test CFO approval of Coordinator request.
+select lives_ok(
+  format(
+    'select public.rpc_approve_cash_advance(%L, null)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  'CFO can approve the pending cash advance request'
+);
 
-  -- Test CFO approval of Coordinator request
-  select lives_ok(
-    format('select public.rpc_approve_cash_advance(%L, null)', v_advance_id),
-    'CFO can approve the pending cash advance request'
-  );
+-- Test CFO disbursement.
+select lives_ok(
+  format(
+    'select public.rpc_disburse_cash_advance(%L, 1500000.00, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'MM-TXN-1002'
+  ),
+  'CFO can disburse the approved cash advance request'
+);
 
-  -- Test CFO disbursement
-  select lives_ok(
-    format('select public.rpc_disburse_cash_advance(%L, 1500000.00, %L)', v_advance_id, 'MM-TXN-1002'),
-    'CFO can disburse the approved cash advance request'
-  );
+-- The coordinator now has an outstanding advance. A second approval requires an override reason.
+select throws_ok(
+  format(
+    'select public.rpc_approve_cash_advance(%L, null)',
+    (select id from public.cash_advance_requests where purpose = 'CFO direct advance' limit 1)
+  ),
+  'W0001',
+  'Warning: Outstanding advances detected. CFO override reason is required.',
+  'CFO approval fails without override reason when outstanding advances exist'
+);
 
-  -- Now coordinator has 1 outstanding advance. CFO tries to approve the second one without override reason (should fail)
-  declare
-    v_second_id uuid;
-  begin
-    select id into v_second_id
-    from public.cash_advance_requests
-    where purpose = 'CFO direct advance'
-    limit 1;
+select lives_ok(
+  format(
+    'select public.rpc_approve_cash_advance(%L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'CFO direct advance' limit 1),
+    'Urgent extra site request override'
+  ),
+  'CFO can approve with override reason when outstanding advances exist'
+);
 
-    select throws_ok(
-      format('select public.rpc_approve_cash_advance(%L, null)', v_second_id),
-      'W0001',
-      'Warning: Outstanding advances detected. CFO override reason is required.',
-      'CFO approval fails without override reason when outstanding advances exist'
-    );
+-- Coordinator submits an expense.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 
-    -- CFO approves with override reason (should succeed)
-    select lives_ok(
-      format('select public.rpc_approve_cash_advance(%L, %L)', v_second_id, 'Urgent extra site request override'),
-      'CFO can approve with override reason when outstanding advances exist'
-    );
-  end;
+select throws_ok(
+  format(
+    'select public.rpc_submit_cash_expense(%L, %L, %L, %L, %L, %L, null, true, null)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    '2026-07-12',
+    'transport',
+    120000.00,
+    'Local Boda Rider',
+    'Transport of concrete bags'
+  ),
+  'V0001',
+  'Validation: Explanation is mandatory for receipt-unavailable expenses',
+  'Receipt-unavailable expense requires an explanation'
+);
 
-  -- Test Coordinator submits expense
-  -- Reset to Coordinator role
-  reset role;
-  set local role authenticated;
-  select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select lives_ok(
+  format(
+    'select public.rpc_submit_cash_expense(%L, %L, %L, %L, %L, %L, null, true, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    '2026-07-12',
+    'transport',
+    120000.00,
+    'Local Boda Rider',
+    'Transport of concrete bags',
+    'Boda boda rider did not have printer/receipt book'
+  ),
+  'Coordinator can submit receipt-unavailable expense with mandatory explanation'
+);
 
-  -- Submitting receipt-unavailable expense without explanation fails
-  select throws_ok(
-    format('select public.rpc_submit_cash_expense(%L, %L, %L, %L, %L, %L, null, true, null)',
-      v_advance_id,
-      '2026-07-12',
-      'transport',
-      120000.00,
-      'Local Boda Rider',
-      'Transport of concrete bags',
-      'Validation: Explanation is mandatory for receipt-unavailable expenses'
-    ),
-    'Validation: Explanation is mandatory for receipt-unavailable expenses'
-  );
+-- CFO reviews the expense and records returned cash.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
 
-  -- Submitting receipt-unavailable expense with explanation succeeds
-  declare
-    v_expense_id uuid;
-  begin
-    select public.rpc_submit_cash_expense(
-      v_advance_id,
-      '2026-07-12',
-      'transport',
-      120000.00,
-      'Local Boda Rider',
-      'Transport of concrete bags',
-      null,
-      true,
-      'Boda boda rider did not have printer/receipt book'
-    ) into v_expense_id;
+select lives_ok(
+  format(
+    'select public.rpc_review_cash_expense(%L, true, null)',
+    (
+      select expense.id
+      from public.cash_advance_expenses expense
+      join public.cash_advance_requests request on request.id = expense.cash_advance_id
+      where request.purpose = 'Site supplies transport'
+        and expense.explanation = 'Transport of concrete bags'
+      limit 1
+    )
+  ),
+  'CFO can accept/approve expense item'
+);
 
-    select isnot(v_expense_id, null, 'Coordinator can submit receipt-unavailable expense with mandatory explanation');
+select lives_ok(
+  format(
+    'select public.rpc_return_cash(%L, %L, 500000.00, %L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    '2026-07-12',
+    'MM-RET-5591',
+    'Unused cash returned'
+  ),
+  'CFO can record cash return from coordinator'
+);
 
-    -- CFO reviews expense
-    -- Reset to CFO role
-    reset role;
-    set local role authenticated;
-    select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+-- 1,500,000 disbursed - 120,000 expense - 500,000 returned = 880,000 outstanding.
+select results_eq(
+  format(
+    'select public.get_cash_advance_balance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  $$ select 880000.00::numeric $$,
+  'Outstanding balance matches reconciliation invariant'
+);
 
-    select lives_ok(
-      format('select public.rpc_review_cash_expense(%L, true, null)', v_expense_id),
-      'CFO can accept/approve expense item'
-    );
-  end;
+select throws_ok(
+  format(
+    'select public.rpc_close_cash_advance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  'B0001',
+  'Conflict: Cannot close advance: outstanding balance of 880000.00 UGX is not zero.',
+  'Cannot close advance with non-zero outstanding balance'
+);
 
-  -- CFO records cash return
-  declare
-    v_return_id uuid;
-  begin
-    select public.rpc_return_cash(
-      v_advance_id,
-      '2026-07-12',
-      500000.00,
-      'MM-RET-5591',
-      'Unused cash returned'
-    ) into v_return_id;
+select lives_ok(
+  format(
+    'select public.rpc_return_cash(%L, %L, 880000.00, %L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    '2026-07-12',
+    'MM-RET-5592',
+    'Final balance return'
+  ),
+  'CFO can record second cash return to reach zero outstanding balance'
+);
 
-    select isnot(v_return_id, null, 'CFO can record cash return from coordinator');
-  end;
+select results_eq(
+  format(
+    'select public.get_cash_advance_balance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  $$ select 0.00::numeric $$,
+  'Outstanding balance is now zero'
+);
 
-  -- Check reconciliation balance: 1,500,000 disbursed - 120,000 expense - 500,000 returned = 880,000 outstanding
-  select results_eq(
-    format('select public.get_cash_advance_balance(%L)', v_advance_id),
-    $$ select 880000.00::numeric $$,
-    'Outstanding balance matches reconciliation invariant'
-  );
+select lives_ok(
+  format(
+    'select public.rpc_close_cash_advance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  'CFO can close advance successfully when outstanding balance is zero'
+);
 
-  -- CFO attempts to close cash advance (fails because balance is not 0)
-  select throws_ok(
-    format('select public.rpc_close_cash_advance(%L)', v_advance_id),
-    'B0001',
-    'Conflict: Cannot close advance: outstanding balance of 880000.00 UGX is not zero.',
-    'Cannot close advance with non-zero outstanding balance'
-  );
-
-  -- CFO returns remaining cash to balance the ledger
-  select lives_ok(
-    format('select public.rpc_return_cash(%L, %L, 880000.00, %L, %L)', v_advance_id, '2026-07-12', 'MM-RET-5592', 'Final balance return'),
-    'CFO can record second cash return to reach zero outstanding balance'
-  );
-
-  -- Re-verify balance is 0
-  select results_eq(
-    format('select public.get_cash_advance_balance(%L)', v_advance_id),
-    $$ select 0.00::numeric $$,
-    'Outstanding balance is now zero'
-  );
-
-  -- CFO closes advance
-  select lives_ok(
-    format('select public.rpc_close_cash_advance(%L)', v_advance_id),
-    'CFO can close advance successfully when outstanding balance is zero'
-  );
-
-  -- Verify final request status is completed
-  select results_eq(
-    format('select status from public.cash_advance_requests where id = %L', v_advance_id),
-    $$ select 'completed'::text $$,
-    'Request status is now completed'
-  );
-end;
+select results_eq(
+  format(
+    'select status from public.cash_advance_requests where id = %L',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  $$ select 'completed'::text $$,
+  'Request status is now completed'
+);
 
 rollback;
