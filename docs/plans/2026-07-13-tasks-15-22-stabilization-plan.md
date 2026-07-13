@@ -16,7 +16,7 @@
 - Do not modify `/Users/jeffadhaya/Documents/Codex Projects/Egypro Onehub 2.0` or `/Users/jeffadhaya/Documents/Codex Projects/Egypro Onehub 2.0 AI Continuation`.
 - Use Supabase project `sewbxazwpjbtevckorbl` during stabilization.
 - Do not push any migration to original project `kgntxnwvnayhjpsoauuj` during Tasks 1–10.
-- Do not edit an already-hosted migration as the only correction. Add migrations `0052` onward.
+- Do not edit an already-hosted migration as the only correction. `0052_fix_revokes.sql` is already hosted; add stabilization migrations `0053` onward.
 - Begin each behavior change with a failing test.
 - Commit each task independently after its focused tests and `git diff --check` pass.
 - Never commit `.env`, database passwords, webhook secrets or provider credentials.
@@ -41,7 +41,7 @@
 ## Task 2: Close Cash Authorization Bypasses
 
 **Files:**
-- Create: `supabase/migrations/0052_harden_cash_authorization.sql`
+- Create: `supabase/migrations/0053_harden_cash_authorization.sql`
 - Modify: `supabase/tests/cash_advances.sql`
 - Test: `supabase/tests/cash_advances.sql`
 
@@ -53,14 +53,14 @@
 4. Revoke direct authenticated `INSERT`/`UPDATE` where workflow RPCs are required.
 5. Replace broad helper execution with owner-or-finance authorization and explicit grants.
 6. Set hardened `SECURITY DEFINER` search paths and schema-qualify referenced objects.
-7. Apply migration `0052` to the Antigravity project.
+7. Apply migration `0053` to the Antigravity project.
 8. Rerun the cash suite and linked database lint.
 9. Commit: `security: close cash workflow authorization bypasses`.
 
 ## Task 3: Enforce Cash Accounting Invariants
 
 **Files:**
-- Create: `supabase/migrations/0053_enforce_cash_accounting.sql`
+- Create: `supabase/migrations/0054_enforce_cash_accounting.sql`
 - Modify: `supabase/tests/cash_advances.sql`
 - Modify if required: `src/modules/cash/api/cashAdvances.ts`
 - Test: `supabase/tests/cash_advances.sql`
@@ -74,13 +74,13 @@
 5. Reject any operation that would create a negative or inconsistent outstanding balance.
 6. Add controlled reopen/reversal behavior if absent, preserving audit history.
 7. Update the TypeScript API only if RPC signatures change.
-8. Apply `0053`, rerun pgTAP, unit tests and `git diff --check`.
+8. Apply `0054`, rerun pgTAP, unit tests and `git diff --check`.
 9. Commit: `fix: enforce cash advance reconciliation invariants`.
 
 ## Task 4: Repair Inventory State Transitions and Receiving
 
 **Files:**
-- Create: `supabase/migrations/0054_harden_inventory_workflows.sql`
+- Create: `supabase/migrations/0055_harden_inventory_workflows.sql`
 - Modify: `supabase/tests/inventory_workflow.sql`
 - Modify: `supabase/tests/warehouse_approval_routing.sql`
 - Test: both database suites
@@ -96,13 +96,13 @@
 7. Enforce exact lifecycle source states and warehouse ownership.
 8. Add a unique/idempotent receipt identity and lifecycle-aware equipment receipt behavior.
 9. Remove the unused `v_ref` variable or use it meaningfully.
-10. Apply `0054`, rerun inventory/approval pgTAP and linked lint.
+10. Apply `0055`, rerun inventory/approval pgTAP and linked lint.
 11. Commit: `fix: make inventory transitions atomic and idempotent`.
 
 ## Task 5: Add Explicit Custody and Safe QR Fulfilment
 
 **Files:**
-- Create: `supabase/migrations/0055_add_asset_custody.sql`
+- Create: `supabase/migrations/0056_add_asset_custody.sql`
 - Modify: `supabase/tests/inventory_workflow.sql`
 - Modify: `src/modules/warehouse/api/inventory.ts`
 - Modify: `src/modules/warehouse/components/ScannerModal.tsx`
@@ -117,7 +117,7 @@
 4. Change fulfilment RPCs to create custody atomically.
 5. Make the scanner identify/validate a specific requested asset rather than issuing an unrelated entire request.
 6. Surface clear validation errors and retain manual fallback.
-7. Apply `0055`; run inventory pgTAP and the focused component test.
+7. Apply `0056`; run inventory pgTAP and the focused component test.
 8. Commit: `feat: add auditable asset custody and safe QR issue`.
 
 ## Task 6: Correct Reports and Exports
@@ -126,7 +126,7 @@
 - Create: `src/modules/reports/api/reports.test.ts`
 - Modify: `src/modules/reports/api/reports.ts`
 - Modify: `src/modules/reports/ReportsPage.tsx`
-- Create: `supabase/migrations/0056_fix_report_permissions.sql`
+- Create: `supabase/migrations/0057_fix_report_permissions.sql`
 - Modify: `supabase/tests/reports_audit.sql`
 
 **Steps:**
@@ -140,7 +140,7 @@
 7. Source custodian data from the custody model.
 8. Remove the hardcoded LST assumption and export only verified payroll fields.
 9. Replace browser `alert()` calls with designed inline/toast feedback.
-10. Apply `0056`; run report unit tests and pgTAP.
+10. Apply `0057`; run report unit tests and pgTAP.
 11. Commit: `fix: correct operational reports and HR access`.
 
 ## Task 7: Complete Historical Employee Reconciliation
@@ -151,7 +151,7 @@
 - Modify: `src/modules/migrations/payroll/historicalPayrollImportApi.ts`
 - Modify: `src/modules/migrations/pages/HistoricalPayrollMigrationPage.tsx`
 - Modify if required: `supabase/migrations/0032_historical_payroll_import.sql` for clean local history only
-- Create if hosted behavior changes: `supabase/migrations/0057_fix_historical_employee_reconciliation.sql`
+- Create if hosted behavior changes: `supabase/migrations/0058_fix_historical_employee_reconciliation.sql`
 - Modify: `supabase/tests/historical_payroll_import.sql`
 
 **Steps:**
@@ -163,14 +163,14 @@
 5. Add a preview step for create, enrich, unchanged and unresolved employees.
 6. Require manual confirmation before profile changes and historical commit.
 7. Preserve atomic payroll import and duplicate-file protection.
-8. If database behavior changes, apply additive migration `0057` to the Antigravity project.
+8. If database behavior changes, apply additive migration `0058` to the Antigravity project.
 9. Run parser/reconciler unit tests and historical-import pgTAP.
 10. Commit: `fix: complete reviewed historical employee reconciliation`.
 
 ## Task 8: Harden Notification Delivery and Preferences
 
 **Files:**
-- Create: `supabase/migrations/0058_harden_notification_delivery.sql`
+- Create: `supabase/migrations/0059_harden_notification_delivery.sql`
 - Modify: `supabase/tests/notifications_policy.sql`
 - Modify: `supabase/functions/send-notification/notification_logic.ts`
 - Modify: `supabase/functions/send-notification/index.ts`
@@ -190,7 +190,7 @@
 7. Add an atomic pending-to-processing claim RPC and provider idempotency key.
 8. Respect enabled channels and user preferences before creating deliveries.
 9. Keep in-app delivery available when email is disabled.
-10. Apply `0058`; deploy the Edge Function only after secrets are configured outside Git.
+10. Apply `0059`; deploy the Edge Function only after secrets are configured outside Git.
 11. Run notification pgTAP, Edge Function tests and component tests.
 12. Commit: `security: harden notification delivery and preferences`.
 

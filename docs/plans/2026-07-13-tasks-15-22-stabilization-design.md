@@ -16,7 +16,7 @@ Preserve the working implementation delivered through Task 22, correct the secur
 - Stabilization occurs only on `codex/stabilize-tasks-15-22`, which is based on the continuation commit.
 - The Antigravity Supabase project `sewbxazwpjbtevckorbl` is the stabilization database.
 - The original Supabase project `kgntxnwvnayhjpsoauuj` receives no migrations until the stabilized branch passes all acceptance checks.
-- Existing hosted migrations are never rewritten as the sole fix. Hosted corrections begin with additive migration `0052` or later.
+- Existing hosted migrations are never rewritten as the sole fix. Migration `0052_fix_revokes.sql` is already hosted; stabilization corrections begin with additive migration `0053` or later.
 
 ## Stabilization Workstreams
 
