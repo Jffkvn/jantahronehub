@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(39);
+select plan(50);
 
 -- 1. Table existence checks
 select has_table('public', 'warehouses', 'warehouses table exists');
@@ -59,6 +59,7 @@ select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-0000000
 reset role;
 
 create temp table test_warehouse (id uuid);
+create temp table test_other_warehouse (id uuid);
 create temp table test_category (id uuid);
 create temp table test_consumable (id uuid);
 create temp table test_equipment (id uuid);
@@ -69,6 +70,13 @@ with ins_wh as (
   returning id
 )
 insert into test_warehouse (id) select id from ins_wh;
+
+with ins_wh as (
+  insert into public.warehouses (name, location)
+  values ('Secondary Warehouse', 'Jinja')
+  returning id
+)
+insert into test_other_warehouse (id) select id from ins_wh;
 
 with ins_cat as (
   insert into public.item_categories (name, description)
@@ -91,7 +99,7 @@ with ins_eq as (
 )
 insert into test_equipment (id) select id from ins_eq;
 
-grant select on test_warehouse, test_category, test_consumable, test_equipment to authenticated;
+grant select on test_warehouse, test_other_warehouse, test_category, test_consumable, test_equipment to authenticated;
 
 -- 4. Test Stock Receipt (GRN) via RPC
 set local role authenticated;
@@ -147,8 +155,8 @@ select throws_ok(
     )
   )
   $$,
-  '23503',
-  null,
+  '22000',
+  'Equipment asset not found.',
   'failed multi-item receipt rolls back everything'
 );
 
@@ -198,8 +206,8 @@ select throws_ok(
     (select id from test_warehouse)
   )
   $$,
-  '42501',
-  'Only approved stock requests can be issued.',
+  'L0102',
+  'Conflict: Only approved stock requests can be issued.',
   'cannot issue stock before approval'
 );
 
@@ -380,6 +388,241 @@ select throws_ok(
   '22000',
   'Insufficient stock available for removal.',
   'adjust stock fails if stock is insufficient'
+);
+
+-- 12. Transition, replay, warehouse-ownership, and asset-lifecycle guards.
+-- Replaying a fulfilled request must not post a second set of issue movements.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+  select public.rpc_issue_stock(
+    (select id from test_request),
+    (select id from test_warehouse)
+  )
+  $$,
+  'L0102',
+  'Conflict: Only approved stock requests can be issued.',
+  'fulfilled request cannot be issued a second time'
+);
+
+reset role;
+select is(
+  (
+    select count(*)::bigint
+    from public.stock_movements
+    where movement_type = 'issue'
+      and reference_id = (select id from test_request)
+      and consumable_item_id = (select id from test_consumable)
+  ),
+  1::bigint,
+  'replayed fulfilment does not duplicate consumable issue movements'
+);
+
+-- An available asset in Central Warehouse cannot be issued from Secondary Warehouse.
+create temp table test_wrong_warehouse_request (id uuid);
+with ins_req as (
+  insert into public.stock_requests (
+    requested_by, project_name, status, total_estimated_value, escalated_to_cfo
+  ) values (
+    '60000000-0000-0000-0000-000000000003',
+    'Wrong Warehouse Project',
+    'approved',
+    150000,
+    false
+  ) returning id
+)
+insert into test_wrong_warehouse_request (id) select id from ins_req;
+
+insert into public.stock_request_items (
+  request_id, equipment_asset_id, quantity, estimated_unit_price
+)
+select id, (select id from test_equipment), 1, 150000
+from test_wrong_warehouse_request;
+
+grant select on test_wrong_warehouse_request to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+  select public.rpc_issue_stock(
+    (select id from test_wrong_warehouse_request),
+    (select id from test_other_warehouse)
+  )
+  $$,
+  '22000',
+  'Equipment asset is not available in the issuing warehouse.',
+  'equipment cannot be issued from the wrong warehouse'
+);
+
+reset role;
+select is(
+  (select status from public.equipment_assets where id = (select id from test_equipment)),
+  'available',
+  'wrong-warehouse issue leaves equipment available in its actual warehouse'
+);
+
+-- A warehouse/reference pair is an idempotency identity for receipts.
+create temp table test_replay_consumable (id uuid);
+with ins_con as (
+  insert into public.consumable_items (category_id, name, sku, unit_of_measure)
+  select id, 'Receipt Replay Item', 'RRI-001', 'piece' from test_category
+  returning id
+)
+insert into test_replay_consumable (id) select id from ins_con;
+grant select on test_replay_consumable to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select lives_ok(
+  $$
+  select public.rpc_receive_stock(
+    (select id from test_warehouse),
+    'GRN-REPLAY-001',
+    jsonb_build_array(jsonb_build_object(
+      'consumable_item_id', (select id from test_replay_consumable),
+      'quantity', 7,
+      'unit_price', 1000
+    ))
+  )
+  $$,
+  'first use of a receipt reference succeeds'
+);
+
+select throws_ok(
+  $$
+  select public.rpc_receive_stock(
+    (select id from test_warehouse),
+    ' grn-replay-001 ',
+    jsonb_build_array(jsonb_build_object(
+      'consumable_item_id', (select id from test_replay_consumable),
+      'quantity', 7,
+      'unit_price', 1000
+    ))
+  )
+  $$,
+  '23505',
+  'Conflict: Receipt reference already exists for this warehouse.',
+  'receipt replay cannot duplicate stock'
+);
+
+reset role;
+select is(
+  (
+    select count(*)::bigint
+    from public.stock_movements movement
+    join public.stock_receipts receipt on receipt.id = movement.reference_id
+    where receipt.warehouse_id = (select id from test_warehouse)
+      and lower(btrim(receipt.reference_number)) = 'grn-replay-001'
+      and movement.consumable_item_id = (select id from test_replay_consumable)
+  ),
+  1::bigint,
+  'receipt replay leaves one ledger movement'
+);
+
+-- Receiving must not reclaim assets already outside the available/unlocated intake state.
+create temp table test_lifecycle_assets (case_key text primary key, id uuid);
+with ins_asset as (
+  insert into public.equipment_assets (
+    category_id, serial_number, model_name, status, current_warehouse_id, is_sensitive
+  )
+  select id, 'EQ-LIFE-ASSIGNED', 'Lifecycle Test Asset', 'assigned', null, false
+  from test_category
+  returning id
+)
+insert into test_lifecycle_assets (case_key, id)
+select 'assigned', id from ins_asset;
+
+with ins_asset as (
+  insert into public.equipment_assets (
+    category_id, serial_number, model_name, status, current_warehouse_id, is_sensitive
+  )
+  select id, 'EQ-LIFE-DAMAGED', 'Lifecycle Test Asset', 'damaged', null, false
+  from test_category
+  returning id
+)
+insert into test_lifecycle_assets (case_key, id)
+select 'damaged', id from ins_asset;
+
+with ins_asset as (
+  insert into public.equipment_assets (
+    category_id, serial_number, model_name, status, current_warehouse_id, is_sensitive
+  )
+  select id, 'EQ-LIFE-LOST', 'Lifecycle Test Asset', 'lost', null, false
+  from test_category
+  returning id
+)
+insert into test_lifecycle_assets (case_key, id)
+select 'lost', id from ins_asset;
+grant select on test_lifecycle_assets to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_receive_stock(%L, %L, jsonb_build_array(jsonb_build_object(%L, %L, %L, 1, %L, 1000)))',
+    (select id from test_warehouse),
+    'GRN-LIFE-ASSIGNED',
+    'equipment_asset_id',
+    (select id from test_lifecycle_assets where case_key = 'assigned'),
+    'quantity',
+    'unit_price'
+  ),
+  'L0103',
+  'Conflict: Equipment asset is not eligible for receipt in its current lifecycle state.',
+  'receiving cannot silently reclaim an assigned asset'
+);
+
+select throws_ok(
+  format(
+    'select public.rpc_receive_stock(%L, %L, jsonb_build_array(jsonb_build_object(%L, %L, %L, 1, %L, 1000)))',
+    (select id from test_warehouse),
+    'GRN-LIFE-DAMAGED',
+    'equipment_asset_id',
+    (select id from test_lifecycle_assets where case_key = 'damaged'),
+    'quantity',
+    'unit_price'
+  ),
+  'L0103',
+  'Conflict: Equipment asset is not eligible for receipt in its current lifecycle state.',
+  'receiving cannot silently reclaim a damaged asset'
+);
+
+select throws_ok(
+  format(
+    'select public.rpc_receive_stock(%L, %L, jsonb_build_array(jsonb_build_object(%L, %L, %L, 1, %L, 1000)))',
+    (select id from test_warehouse),
+    'GRN-LIFE-LOST',
+    'equipment_asset_id',
+    (select id from test_lifecycle_assets where case_key = 'lost'),
+    'quantity',
+    'unit_price'
+  ),
+  'L0103',
+  'Conflict: Equipment asset is not eligible for receipt in its current lifecycle state.',
+  'receiving cannot silently reclaim a lost asset'
+);
+
+reset role;
+select results_eq(
+  $$
+    select lifecycle.case_key, asset.status
+    from test_lifecycle_assets lifecycle
+    join public.equipment_assets asset on asset.id = lifecycle.id
+    order by lifecycle.case_key
+  $$,
+  $$
+    values
+      ('assigned'::text, 'assigned'::text),
+      ('damaged'::text, 'damaged'::text),
+      ('lost'::text, 'lost'::text)
+  $$,
+  'failed lifecycle receipts preserve every asset status'
 );
 
 do $$

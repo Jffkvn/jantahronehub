@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(19);
 
 -- 1. Setup checks
 select has_table('public', 'inventory_settings', 'inventory_settings table exists');
@@ -127,6 +127,15 @@ select lives_ok(
   select public.rpc_approve_stock_request((select id from r_req_below))
   $$,
   'warehouse manager can approve below-threshold request'
+);
+
+select throws_ok(
+  $$
+  select public.rpc_approve_stock_request((select id from r_req_below))
+  $$,
+  'L0101',
+  'Conflict: Only pending stock requests can be approved.',
+  'an approved request cannot be approved again'
 );
 
 -- Test 5: Exactly at threshold request (value = UGX 2,000,000)
