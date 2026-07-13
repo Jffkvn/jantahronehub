@@ -113,12 +113,13 @@ export function CashAdvancesPage() {
   }
 
   return (
-    <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+    <div className="oh-workspace-page">
       {/* Top Header bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+      <header className="oh-page-header">
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Project Cash Advances</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Request operational funds, track disbursements, and submit expense reconciliation.</p>
+          <p>Finance operations</p>
+          <h1>Project cash advances</h1>
+          <span>Request operational funds, track disbursements, and submit expense reconciliation.</span>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <Button variant="secondary" onClick={() => void refetch()} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
@@ -128,29 +129,23 @@ export function CashAdvancesPage() {
             <Plus size={16} /> Request Advance
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* KPI Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
-        <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>TOTAL DISBURSED FUNDS</span>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 'var(--space-2) 0 0 0', color: 'var(--color-primary)' }}>
-            {totalDisbursed.toLocaleString()} UGX
-          </h3>
-        </div>
-        <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>PENDING APPROVAL</span>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 'var(--space-2) 0 0 0', color: 'var(--color-warning)' }}>
-            {pendingCount} Requests
-          </h3>
-        </div>
-        <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>ACTIVE DISBURSEMENTS</span>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 'var(--space-2) 0 0 0', color: 'var(--color-success)' }}>
-            {activeCount} Advances
-          </h3>
-        </div>
-      </div>
+      <section className="oh-kpi-band" aria-label="Cash advance metrics">
+        <article className="oh-kpi">
+          <span className="oh-kpi__label">Total disbursed funds</span>
+          <strong className="oh-kpi__value">{totalDisbursed.toLocaleString()} UGX</strong>
+        </article>
+        <article className="oh-kpi">
+          <span className="oh-kpi__label">Pending approval</span>
+          <strong className="oh-kpi__value oh-kpi__value--warning">{pendingCount} Requests</strong>
+        </article>
+        <article className="oh-kpi">
+          <span className="oh-kpi__label">Active disbursements</span>
+          <strong className="oh-kpi__value oh-kpi__value--success">{activeCount} Advances</strong>
+        </article>
+      </section>
 
       {/* Requests portfolio list */}
       {isLoadingRequests ? (
@@ -162,11 +157,6 @@ export function CashAdvancesPage() {
           title="No cash advances logged"
           description="There are currently no cash advance requests recorded."
           icon={<Landmark size={22} />}
-          action={
-            <Button onClick={() => { setRecipientUserId(currentUserId || ''); setRequestModalOpen(true); }}>
-              <Plus size={16} /> Request Cash Advance
-            </Button>
-          }
         />
       ) : (
         <div className="oh-table-wrapper">

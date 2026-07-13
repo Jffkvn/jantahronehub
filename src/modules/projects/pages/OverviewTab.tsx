@@ -143,12 +143,13 @@ export function OverviewTab() {
   }
 
   return (
-    <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+    <div className="oh-workspace-page">
       {/* Quick Action Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+      <header className="oh-page-header">
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Projects Dashboard</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Manage development projects, assignments, and field tracking.</p>
+          <p>Field delivery</p>
+          <h1>Projects dashboard</h1>
+          <span>Manage development projects, assignments, and field tracking.</span>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <Button variant="secondary" onClick={() => void refetchProjects()} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
@@ -165,29 +166,15 @@ export function OverviewTab() {
             </>
           )}
         </div>
-      </div>
+      </header>
 
       {/* KPI Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Total Projects</small>
-          <p style={{ fontSize: '2rem', fontWeight: 800, margin: 'var(--space-2) 0 0 0', lineHeight: 1 }}>{totalCount}</p>
-        </div>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Active Projects</small>
-          <p style={{ fontSize: '2rem', fontWeight: 800, margin: 'var(--space-2) 0 0 0', color: 'var(--color-success)', lineHeight: 1 }}>{activeCount}</p>
-        </div>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Completed Projects</small>
-          <p style={{ fontSize: '2rem', fontWeight: 800, margin: 'var(--space-2) 0 0 0', color: 'var(--color-info)', lineHeight: 1 }}>{completedCount}</p>
-        </div>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>At Risk / Attention</small>
-          <p style={{ fontSize: '2rem', fontWeight: 800, margin: 'var(--space-2) 0 0 0', color: atRiskCount > 0 ? 'var(--color-danger)' : attentionCount > 0 ? 'var(--color-warning)' : 'var(--color-text)', lineHeight: 1 }}>
-            {atRiskCount} <span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--color-text-muted)' }}>/ {attentionCount}</span>
-          </p>
-        </div>
-      </div>
+      <section className="oh-kpi-band" aria-label="Project metrics">
+        <article className="oh-kpi"><span className="oh-kpi__label">Total projects</span><strong className="oh-kpi__value">{totalCount}</strong></article>
+        <article className="oh-kpi"><span className="oh-kpi__label">Active projects</span><strong className="oh-kpi__value oh-kpi__value--success">{activeCount}</strong></article>
+        <article className="oh-kpi"><span className="oh-kpi__label">Completed projects</span><strong className="oh-kpi__value">{completedCount}</strong></article>
+        <article className="oh-kpi"><span className="oh-kpi__label">At risk / attention</span><strong className={`oh-kpi__value${atRiskCount > 0 || attentionCount > 0 ? ' oh-kpi__value--warning' : ''}`}>{atRiskCount} / {attentionCount}</strong></article>
+      </section>
 
       {/* Projects Table */}
       {isLoadingProjects ? (

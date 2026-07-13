@@ -777,8 +777,10 @@ textarea {
   padding: var(--space-6);
 }
 
-.oh-table-wrap {
+.oh-table-wrap,
+.oh-table-wrapper {
   width: 100%;
+  min-width: 0;
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -825,14 +827,36 @@ textarea {
   text-align: center;
 }
 
-.oh-workspace-page { display: grid; gap: var(--space-6); }
+.oh-workspace-page { display: grid; min-width: 0; gap: var(--space-6); }
+.oh-workspace-page > *, .oh-section-surface, .oh-table-wrap { min-width: 0; }
 .oh-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-5); }
+.oh-page-header > div:last-child { flex-wrap: wrap; }
 .oh-page-header p, .oh-dossier-header p { margin: 0 0 var(--space-2); color: var(--color-primary-700); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-.oh-page-header h1, .oh-dossier-header h1 { margin: 0; color: var(--color-navy-900); font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -0.04em; }
+.oh-page-header h1, .oh-dossier-header h1 { margin: 0; color: var(--color-navy-900); font-size: 2rem; line-height: 1.15; letter-spacing: -0.035em; }
 .oh-page-header span { display: block; margin-top: var(--space-2); color: var(--color-text-muted); }
+.oh-section-surface,
+.oh-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.oh-section-surface { padding: clamp(var(--space-4), 2.4vw, var(--space-6)); }
+.oh-section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.oh-section-header h2, .oh-section-header h3 { margin: 0; color: var(--color-navy-900); font-size: 1.05rem; letter-spacing: -0.01em; }
+.oh-section-header p { margin: var(--space-1) 0 0; color: var(--color-text-muted); font-size: 0.85rem; }
+.oh-kpi-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-surface); }
+.oh-kpi { min-width: 0; padding: var(--space-5); }
+.oh-kpi + .oh-kpi { border-left: 1px solid var(--color-border); }
+.oh-kpi__label { display: block; color: var(--color-text-muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.oh-kpi__value { display: block; margin-top: var(--space-2); color: var(--color-navy-900); font-size: 1.35rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.oh-kpi__value--success { color: var(--color-success); }
+.oh-kpi__value--warning { color: var(--color-warning); }
+.oh-operational-split { display: grid; min-width: 0; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); align-items: start; gap: var(--space-6); }
 .payroll-run-header { margin-top: var(--space-4); }
-.payroll-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
-.payroll-summary article { padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: linear-gradient(145deg, #fff, #f2f8f6); box-shadow: var(--shadow-sm); }
+.payroll-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-surface); }
+.payroll-summary article { min-width: 0; padding: var(--space-5); }
+.payroll-summary article + article { border-left: 1px solid var(--color-border); }
 .payroll-summary span, .payroll-line-editor span, .payroll-payment span { display: block; color: var(--color-text-muted); font-size: .82rem; }
 .payroll-summary strong { display: block; margin-top: var(--space-2); color: var(--color-navy-900); font-size: 1.3rem; }
 .payroll-actions, .payroll-export-grid { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
@@ -891,7 +915,7 @@ textarea {
 .oh-import-errors h2 { display: flex; align-items: center; gap: var(--space-2); margin-top: 0; color: var(--color-danger); font-size: 1rem; }
 .oh-import-errors p { display: grid; grid-template-columns: minmax(9rem, auto) 1fr; gap: var(--space-4); margin: 0; padding: var(--space-3) 0; border-top: 1px solid rgb(185 28 28 / .15); }.oh-import-errors p span { color: var(--color-text-muted); }
 .oh-portal-tabs { display: flex; flex-wrap: nowrap; gap: var(--space-2); max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); scrollbar-width: thin; }
-.oh-portal-tab { display: inline-flex; min-height: 2.4rem; flex: 0 0 auto; align-items: center; padding: 0.55rem 0.9rem; border-radius: var(--radius-md); color: var(--color-text-muted); font-size: 0.86rem; font-weight: 750; text-decoration: none; }
+.oh-portal-tab { display: inline-flex; min-height: 2.75rem; flex: 0 0 auto; align-items: center; gap: var(--space-2); padding: 0.55rem 0.9rem; border: 0; border-radius: var(--radius-md); appearance: none; color: var(--color-text-muted); background: transparent; font: inherit; font-size: 0.86rem; font-weight: 750; text-decoration: none; cursor: pointer; }
 .oh-portal-tab:hover { color: var(--color-navy-800); background: var(--color-surface-muted); }
 .oh-portal-tab--active { color: var(--color-primary-700); background: var(--color-primary-50); }
 .oh-portal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
@@ -916,16 +940,24 @@ textarea {
 .oh-inline-icon { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; }
 
 @media (max-width: 48rem) {
+  .oh-page-header h1, .oh-dossier-header h1 { font-size: 1.65rem; }
   .oh-page-header { align-items: stretch; flex-direction: column; }
   .oh-toolbar { align-items: stretch; flex-direction: column; }
   .oh-form-grid, .oh-dossier-grid, .oh-portal-grid, .oh-portal-actions { grid-template-columns: 1fr; }
   .oh-dossier-header { grid-template-columns: auto 1fr; }
   .oh-dossier-actions { grid-column: 1 / -1; }
   .payroll-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .payroll-summary article + article { border-left: 0; }
+  .payroll-summary article:nth-child(even) { border-left: 1px solid var(--color-border); }
+  .payroll-summary article:nth-child(n + 3) { border-top: 1px solid var(--color-border); }
   .payroll-item-card { grid-template-columns: 1fr; }
   .payroll-line-editor { grid-template-columns: 1fr 1fr; }
   .payroll-line-editor > div { grid-column: 1 / -1; }
   .payroll-item-values { padding: var(--space-4) 0 0; border-left: 0; border-top: 1px solid var(--color-border); }
+  .oh-section-header { align-items: stretch; flex-direction: column; }
+  .oh-kpi-band { grid-template-columns: 1fr; }
+  .oh-kpi + .oh-kpi { border-top: 1px solid var(--color-border); border-left: 0; }
+  .oh-operational-split { grid-template-columns: 1fr; }
 }
 
 .oh-badge {
@@ -978,6 +1010,17 @@ textarea {
 }
 
 @media (max-width: 40rem) {
+  .oh-responsive-table { min-width: 0; }
+  .oh-responsive-table thead { display: none; }
+  .oh-responsive-table tbody { display: grid; gap: var(--space-3); padding: var(--space-3); }
+  .oh-responsive-table tr { display: grid; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+  .oh-responsive-table td { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3); border-bottom: 1px solid var(--color-border); text-align: right; overflow-wrap: anywhere; }
+  .oh-responsive-table td::before { flex: 0 0 auto; color: var(--color-text-muted); content: attr(data-label); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  .oh-responsive-table td:last-child { border-bottom: 0; }
+  .oh-responsive-table .oh-inline-icon { text-align: left; }
+  .payroll-summary { grid-template-columns: 1fr; }
+  .payroll-summary article:nth-child(even) { border-left: 0; }
+  .payroll-summary article + article { border-top: 1px solid var(--color-border); }
   .oh-showcase {
     width: min(100% - 1rem, var(--content-max));
     padding-block: var(--space-6);

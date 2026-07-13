@@ -72,12 +72,13 @@ export function OverviewPage() {
   }
 
   return (
-    <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+    <div className="oh-workspace-page">
       {/* Quick Action Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+      <header className="oh-page-header">
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Warehouse Overview</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Unified inventory operations and logistics management.</p>
+          <p>Stock operations</p>
+          <h1>Warehouse overview</h1>
+          <span>Unified inventory operations and logistics management.</span>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <Button variant="secondary" onClick={refreshData} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
@@ -92,32 +93,20 @@ export function OverviewPage() {
             </Button>
           </Link>
         </div>
-      </div>
+      </header>
 
       {/* KPI Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Warehouses</small>
-          <p style={{ fontSize: '1.75rem', fontWeight: 800, margin: 'var(--space-1) 0 0' }}>{warehouses.data?.length ?? 0}</p>
-        </div>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Consumable SKUs</small>
-          <p style={{ fontSize: '1.75rem', fontWeight: 800, margin: 'var(--space-1) 0 0' }}>{consumables.data?.length ?? 0}</p>
-        </div>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Active Assets</small>
-          <p style={{ fontSize: '1.75rem', fontWeight: 800, margin: 'var(--space-1) 0 0' }}>{equipment.data?.length ?? 0}</p>
-        </div>
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
-          <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Pending Approvals</small>
-          <p style={{ fontSize: '1.75rem', fontWeight: 800, color: pendingRequestsCount > 0 ? 'var(--color-red-600)' : 'inherit', margin: 'var(--space-1) 0 0' }}>{pendingRequestsCount}</p>
-        </div>
-      </div>
+      <section className="oh-kpi-band" aria-label="Inventory metrics">
+        <article className="oh-kpi"><span className="oh-kpi__label">Warehouses</span><strong className="oh-kpi__value">{warehouses.data?.length ?? 0}</strong></article>
+        <article className="oh-kpi"><span className="oh-kpi__label">Consumable SKUs</span><strong className="oh-kpi__value">{consumables.data?.length ?? 0}</strong></article>
+        <article className="oh-kpi"><span className="oh-kpi__label">Active assets</span><strong className="oh-kpi__value oh-kpi__value--success">{equipment.data?.length ?? 0}</strong></article>
+        <article className="oh-kpi"><span className="oh-kpi__label">Pending approvals</span><strong className={`oh-kpi__value${pendingRequestsCount > 0 ? ' oh-kpi__value--warning' : ''}`}>{pendingRequestsCount}</strong></article>
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
+      <div className="oh-operational-split">
         
         {/* Recent Movements Log */}
-        <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
+        <div className="oh-section-surface">
           <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 var(--space-3)' }}>Recent Stock Movements</h3>
           <div className="oh-table-wrap">
             <table className="oh-table">
@@ -160,7 +149,7 @@ export function OverviewPage() {
 
         <div className="oh-form-stack" style={{ gap: 'var(--space-4)' }}>
           {/* Active Warehouses List */}
-          <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
+          <div className="oh-section-surface">
             <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 var(--space-3)' }}>Warehouses</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {(warehouses.data || []).map((wh) => (
@@ -176,7 +165,7 @@ export function OverviewPage() {
           </div>
 
           {/* Configurable Settings Panel */}
-          <div className="oh-detail-card" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
+          <div className="oh-section-surface">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
                 <Settings size={16} /> Routing Settings

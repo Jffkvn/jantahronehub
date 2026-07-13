@@ -48,6 +48,12 @@ export function ComponentShowcase() {
               ),
             )}
           </nav>
+          <nav className="oh-portal-tabs" aria-label="Button tab preview">
+            <button className="oh-portal-tab oh-portal-tab--active" type="button">
+              Workforce Summary
+            </button>
+            <button className="oh-portal-tab" type="button">Payroll &amp; Statutory</button>
+          </nav>
         </section>
 
         <section className="oh-showcase__card">

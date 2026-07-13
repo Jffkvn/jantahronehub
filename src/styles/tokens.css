@@ -4,10 +4,13 @@
   --color-primary-700: #0a6047;
   --color-primary-600: #0e7c5a;
   --color-primary-500: #15966f;
+  --color-primary-200: #b9e5d7;
   --color-primary-100: #dff4ed;
   --color-primary-50: #effaf6;
   --color-navy-900: #102442;
   --color-navy-800: #17325c;
+  --color-navy-700: #24446f;
+  --color-navy-600: #3d5a80;
   --color-navy-100: #e7edf6;
   --color-canvas: #fafaf8;
   --color-surface: #ffffff;
@@ -17,13 +20,31 @@
   --color-text: #1f2937;
   --color-text-muted: #626b78;
   --color-success: #087a55;
+  --color-success-600: #087a55;
+  --color-success-500: #15966f;
+  --color-success-200: #b9e5d7;
   --color-success-bg: #e7f7f0;
   --color-warning: #995b08;
+  --color-warning-700: #7a4805;
+  --color-warning-500: #c47a13;
   --color-warning-bg: #fff4d6;
   --color-danger: #b42318;
+  --color-red-600: #b42318;
+  --color-red-200: #f4b8b3;
+  --color-green-700: #087a55;
   --color-danger-bg: #feeceb;
   --color-info: #315b96;
   --color-info-bg: #eaf1fb;
+
+  /* Semantic aliases used by operational modules. */
+  --color-primary: var(--color-primary-600);
+  --color-primary-light: var(--color-primary-100);
+  --color-primary-lightest: var(--color-primary-50);
+  --color-success-surface: var(--color-success-bg);
+  --color-warning-surface: var(--color-warning-bg);
+  --color-danger-surface: var(--color-danger-bg);
+  --color-background: var(--color-canvas);
+  --color-background-subtle: var(--color-surface-muted);
 
   --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -42,7 +63,9 @@
   --radius-lg: 0.875rem;
   --radius-xl: 1.125rem;
   --shadow-sm: 0 1px 2px rgb(16 36 66 / 0.08);
+  --shadow-surface: 0 8px 24px rgb(16 36 66 / 0.055);
   --shadow-lg: 0 20px 45px rgb(16 36 66 / 0.18);
   --focus-ring: 0 0 0 3px rgb(14 124 90 / 0.25);
+  --transition-fast: 150ms ease;
   --content-max: 75rem;
 }

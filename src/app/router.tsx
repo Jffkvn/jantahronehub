@@ -22,6 +22,7 @@ const TrackerPage = lazy(() => import('../modules/projects/TrackerPage'))
 const ReportsPage = lazy(() => import('../modules/reports/ReportsPage'))
 const AdminPage = lazy(() => import('../modules/admin/AdminPage'))
 const PayrollPreview = lazy(() => import('./PayrollPreview').then((module)=>({default:module.PayrollPreview})))
+const HrPreview = lazy(() => import('./HrPreview').then((module) => ({ default: module.HrPreview })))
 
 const previewModules = oneHubModules.map((module) => module.key)
 const rolePriority = [
@@ -109,6 +110,7 @@ export function AppRouter() {
           >
             <Route index element={<HomePage />} />
             <Route path="payroll" element={<PayrollPreview />} />
+            <Route path="hr" element={<HrPreview />} />
           </Route>
         ) : null}
         <Route element={<RequireAuth />}>

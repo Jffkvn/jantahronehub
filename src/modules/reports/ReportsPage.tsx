@@ -367,14 +367,15 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+    <div className="oh-workspace-page">
       {/* Central reports header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+      <header className="oh-page-header">
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Governance Reports & Audits</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Verified operational statistics, exceptions tracking, and statutory exports from canonical ledgers.</p>
+          <p>Governance</p>
+          <h1>Reports &amp; audits</h1>
+          <span>Verified operational statistics, exception tracking, and statutory exports from canonical ledgers.</span>
         </div>
-      </div>
+      </header>
 
       {exportFeedback && (
         <div
@@ -394,7 +395,7 @@ export default function ReportsPage() {
       )}
 
       {/* Tab select headers */}
-      <div className="oh-portal-tabs" aria-label="Governance sections" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="oh-portal-tabs" aria-label="Governance sections">
         <button
           className={activeTab === 'workforce' ? 'oh-portal-tab oh-portal-tab--active' : 'oh-portal-tab'}
           onClick={() => setActiveTab('workforce')}
@@ -442,8 +443,11 @@ export default function ReportsPage() {
         {/* Tab 1: Workforce Summary */}
         {activeTab === 'workforce' && (
           <div className="oh-form-stack" style={{ gap: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Workforce Statistics</h3>
+            <div className="oh-section-header">
+              <div>
+                <h3>Workforce statistics</h3>
+                <p>Current headcount and department distribution.</p>
+              </div>
               {hasExportPermission && (
                 <Button onClick={handleWorkforceExport} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: '0.85rem', padding: 'var(--space-1) var(--space-2)' }}>
                   <FileSpreadsheet size={15} /> Export Workforce
@@ -457,22 +461,18 @@ export default function ReportsPage() {
               <div>No workforce metrics available.</div>
             ) : (
               <div className="oh-form-stack" style={{ gap: 'var(--space-4)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
-                  <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>TOTAL HEADCOUNT</span>
-                    <h4 style={{ fontSize: '1.6rem', fontWeight: 700, margin: 'var(--space-2) 0 0 0', color: 'var(--color-primary)' }}>
-                      {workforce.totalHeadcount} Employees
-                    </h4>
+                <div className="oh-kpi-band">
+                  <div className="oh-kpi">
+                    <span className="oh-kpi__label">Total headcount</span>
+                    <strong className="oh-kpi__value">{workforce.totalHeadcount} Employees</strong>
                   </div>
-                  <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>ACTIVE STAFF</span>
-                    <h4 style={{ fontSize: '1.6rem', fontWeight: 700, margin: 'var(--space-2) 0 0 0', color: 'var(--color-success)' }}>
-                      {workforce.activeCount} Employees
-                    </h4>
+                  <div className="oh-kpi">
+                    <span className="oh-kpi__label">Active staff</span>
+                    <strong className="oh-kpi__value oh-kpi__value--success">{workforce.activeCount} Employees</strong>
                   </div>
                 </div>
 
-                <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
+                <div className="oh-section-surface">
                   <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 var(--space-3) 0' }}>Departmental Headcount Splits</h4>
                   <div className="oh-table-wrapper">
                     <table className="oh-table" style={{ width: '100%' }}>
