@@ -316,18 +316,13 @@ alter table public.notification_deliveries enable row level security;
 revoke all on table public.notification_deliveries from anon, authenticated;
 grant select, insert, update on table public.notification_deliveries to service_role;
 
--- 6. Add dynamic edge function webhook settings
+-- 6. Keep email delivery disabled until deployment secrets are configured.
 insert into public.feature_settings (key, value, description)
 values
   (
-    'notifications.webhook_url',
-    '{"url": "http://localhost:54321/functions/v1/send-notification"}'::jsonb,
-    'Webhook URL for notification email delivery dispatch.'
-  ),
-  (
-    'notifications.webhook_secret',
-    '{"secret": "secret_notifications_webhook_2026"}'::jsonb,
-    'Security verification secret header for notifying edge functions.'
+    'notifications.channels',
+    '{"in_app": true, "email": false}'::jsonb,
+    'Deployment notification channels. Email must be configured explicitly.'
   )
 on conflict (key) do nothing;
 

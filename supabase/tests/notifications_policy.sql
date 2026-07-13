@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(33);
+select plan(59);
 
 -- 1. Table & Column checks
 select has_table('public', 'notifications', 'notifications table should exist');
@@ -19,6 +19,45 @@ select has_function('public', 'create_notification', ARRAY['uuid', 'text', 'text
 select has_function('public', 'mark_notification_as_read', ARRAY['uuid'], 'mark_notification_as_read helper should exist');
 select has_function('public', 'mark_all_notifications_as_read', ARRAY[]::text[], 'mark_all_notifications_as_read helper should exist');
 select has_table('public', 'notification_deliveries', 'notification_deliveries table should exist');
+select has_table('public', 'notification_preferences', 'per-user notification preferences should exist');
+select has_column('public', 'notification_preferences', 'category', 'preferences are scoped by notification category');
+select has_column('public', 'notification_preferences', 'email_enabled', 'users can disable email by category');
+select has_function(
+  'public',
+  'set_notification_email_preference',
+  ARRAY['text', 'boolean'],
+  'users can update their own email preference safely'
+);
+select has_column('public', 'notification_deliveries', 'provider_idempotency_key', 'delivery has a stable provider idempotency key');
+select has_column('public', 'notification_deliveries', 'claim_token', 'delivery records its current worker claim');
+select has_column('public', 'notification_deliveries', 'processing_started_at', 'delivery records when processing began');
+select has_function('public', 'claim_notification_delivery', ARRAY['uuid', 'text'], 'workers atomically claim one delivery');
+select has_function(
+  'public',
+  'complete_notification_delivery',
+  ARRAY['uuid', 'uuid', 'text', 'text', 'text'],
+  'only the claiming worker can complete a delivery'
+);
+select function_privs_are(
+  'public', 'claim_notification_delivery', ARRAY['uuid', 'text'],
+  'authenticated', ARRAY[]::text[],
+  'authenticated clients cannot claim notification deliveries'
+);
+select function_privs_are(
+  'public', 'complete_notification_delivery', ARRAY['uuid', 'uuid', 'text', 'text', 'text'],
+  'authenticated', ARRAY[]::text[],
+  'authenticated clients cannot complete notification deliveries'
+);
+select results_eq(
+  $$ select value ->> 'email' from public.feature_settings where key = 'notifications.channels' $$,
+  $$ values ('false'::text) $$,
+  'deployment email notifications default to disabled'
+);
+select is(
+  (select count(*) from public.feature_settings where key = 'notifications.webhook_secret'),
+  0::bigint,
+  'webhook secrets are not stored in deployment feature settings'
+);
 
 -- 2. Setup test data as admin
 -- Create auth users
@@ -83,6 +122,18 @@ select public.create_notification(
   'test_notif_2'
 );
 
+select results_eq(
+  $$ select count(*)::integer from public.notifications where event_key in ('test_notif_1', 'test_notif_2') $$,
+  $$ values (2) $$,
+  'in-app notifications remain available when deployment email is disabled'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.notification_deliveries $$,
+  $$ values (0) $$,
+  'disabled deployment email creates no delivery rows'
+);
+
 -- 3. RLS Policy tests (Switching roles)
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"90000000-0000-0000-0000-000000000012", "role":"authenticated"}', true);
@@ -128,6 +179,19 @@ select results_eq(
   'mark_notification_as_read should mark own notification read'
 );
 
+select lives_ok(
+  $$ select public.set_notification_email_preference('cash', false) $$,
+  'user can disable their own category email preference'
+);
+
+select throws_ok(
+  $$ insert into public.notification_preferences(profile_id, category, email_enabled)
+     values ('90000000-0000-0000-0000-000000000011', 'cash', false) $$,
+  '42501',
+  'new row violates row-level security policy for table "notification_preferences"',
+  'user cannot change another profile notification preference'
+);
+
 -- Reset role to admin to test trigger scenarios
 reset role;
 select set_config('request.jwt.claims', null, true);
@@ -153,6 +217,130 @@ select results_eq(
   $$ select false $$,
   'Coordinator marking CFO notification read does nothing'
 );
+
+update public.feature_settings
+set value = '{"in_app":true,"email":true}'::jsonb
+where key = 'notifications.channels';
+
+select public.create_notification(
+  '90000000-0000-0000-0000-000000000012',
+  'Preference test',
+  'This remains in app.',
+  'cash',
+  'preference_email_disabled'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.notifications where event_key = 'preference_email_disabled' $$,
+  $$ values (1) $$,
+  'user email preference never suppresses the in-app notification'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.notification_deliveries delivery
+     join public.notifications notification on notification.id = delivery.notification_id
+     where notification.event_key = 'preference_email_disabled' $$,
+  $$ values (0) $$,
+  'disabled user email preference creates no email delivery'
+);
+
+select public.create_notification(
+  '90000000-0000-0000-0000-000000000012',
+  'Configuration test',
+  'This remains in app while email fails closed.',
+  'general',
+  'missing_email_configuration'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.notifications where event_key = 'missing_email_configuration' $$,
+  $$ values (1) $$,
+  'missing email configuration never suppresses the in-app notification'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.notification_deliveries delivery
+     join public.notifications notification on notification.id = delivery.notification_id
+     where notification.event_key = 'missing_email_configuration'
+       and delivery.status = 'failed'
+       and delivery.last_error_code = 'DELIVERY_CONFIGURATION_MISSING' $$,
+  $$ values (1) $$,
+  'enabled email with missing webhook configuration fails closed'
+);
+
+update public.notification_deliveries delivery
+set status = 'pending', last_error_code = null, next_attempt_at = now()
+from public.notifications notification
+where delivery.notification_id = notification.id
+  and notification.event_key = 'missing_email_configuration';
+
+create temporary table task8_claims(payload jsonb) on commit drop;
+insert into task8_claims
+select public.claim_notification_delivery(
+  (select id from public.notifications where event_key = 'missing_email_configuration'),
+  'email'
+);
+
+select isnt(
+  (select payload from task8_claims),
+  null::jsonb,
+  'first worker atomically claims the pending delivery'
+);
+
+select is(
+  public.claim_notification_delivery(
+    (select id from public.notifications where event_key = 'missing_email_configuration'),
+    'email'
+  ),
+  null::jsonb,
+  'second worker cannot claim a processing delivery'
+);
+
+update public.notification_deliveries delivery
+set processing_started_at = now() - interval '16 minutes'
+from public.notifications notification
+where delivery.notification_id = notification.id
+  and notification.event_key = 'missing_email_configuration';
+
+update task8_claims
+set payload = public.claim_notification_delivery(
+  (select id from public.notifications where event_key = 'missing_email_configuration'),
+  'email'
+);
+
+select isnt(
+  (select payload from task8_claims),
+  null::jsonb,
+  'a stale processing claim is safely recoverable'
+);
+
+select is(
+  public.complete_notification_delivery(
+    ((select payload from task8_claims) ->> 'id')::uuid,
+    extensions.gen_random_uuid(),
+    'sent',
+    null,
+    'provider-message-wrong'
+  ),
+  false,
+  'worker with the wrong claim token cannot complete a delivery'
+);
+
+select is(
+  public.complete_notification_delivery(
+    ((select payload from task8_claims) ->> 'id')::uuid,
+    ((select payload from task8_claims) ->> 'claim_token')::uuid,
+    'sent',
+    null,
+    'provider-message-1'
+  ),
+  true,
+  'claiming worker completes the delivery once'
+);
+
+update public.feature_settings
+set value = '{"in_app":true,"email":false}'::jsonb
+where key = 'notifications.channels';
 
 -- Clean notifications and outbox for trigger checks
 delete from public.notification_deliveries;
@@ -386,8 +574,8 @@ select results_eq(
 -- 14. Verify Outbox table triggers on notification insert
 select results_eq(
   $$ select count(*)::integer from public.notification_deliveries where channel = 'email' $$,
-  $$ select count(*)::integer from public.notifications $$,
-  'Webhook triggers insert a notification delivery outbox record for email'
+  $$ values (0) $$,
+  'domain notifications stay in-app-only while deployment email is disabled'
 );
 
 select * from finish();

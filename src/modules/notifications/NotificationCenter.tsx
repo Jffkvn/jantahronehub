@@ -18,7 +18,7 @@ export function NotificationCenter() {
   const queryClient = useQueryClient()
 
   // 1. Fetch notifications
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsApi.listNotifications,
     refetchInterval: 15000 // Poll every 15s to get live alerts in topbar
@@ -174,6 +174,19 @@ export function NotificationCenter() {
               <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                 <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto var(--space-2)' }} />
                 Loading alerts...
+              </div>
+            ) : isError ? (
+              <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                <p style={{ margin: '0 0 var(--space-3)' }}>Notifications could not be loaded.</p>
+                <button
+                  type="button"
+                  onClick={() => void refetch()}
+                  disabled={isFetching}
+                  className="oh-button oh-button-secondary"
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  {isFetching ? 'Trying again...' : 'Try again'}
+                </button>
               </div>
             ) : notifications.length === 0 ? (
               <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>

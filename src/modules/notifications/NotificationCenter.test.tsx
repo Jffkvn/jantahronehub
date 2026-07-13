@@ -122,35 +122,21 @@ describe('NotificationCenter', () => {
     const bellButton = screen.getByRole('button', { name: /Notifications/i })
     await userEvent.click(bellButton)
 
-    // The query failure falls back to empty state or error in React Query.
-    // In our component, we default notifications to empty array on error, so it shows "No notifications yet."
-    expect(await screen.findByText(/no notifications yet/i)).toBeInTheDocument()
+    expect(await screen.findByText(/notifications could not be loaded/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+    expect(screen.queryByText(/no notifications yet/i)).not.toBeInTheDocument()
   })
 
-  it('prevents exposure of another users notifications by checking profile ownership', async () => {
-    // Mock notifications list containing a mix of current user and other user's notifications.
-    // The frontend displays what the API returns. We assert that only recipient_profile_id matching user-123 is handled.
-    const foreignNotifications: Notification[] = [
-      {
-        id: 'notif-3',
-        recipient_profile_id: 'other-user',
-        title: 'Secret Payroll Notification',
-        message: 'This belongs to another user.',
-        is_read: false,
-        category: 'payroll',
-        created_at: new Date().toISOString()
-      }
-    ]
-
-    vi.mocked(notificationsApi.listNotifications).mockResolvedValue(foreignNotifications)
+  it('retries the notification query from the visible error state', async () => {
+    vi.mocked(notificationsApi.listNotifications)
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce([])
 
     renderWithProviders(<NotificationCenter />)
+    await userEvent.click(screen.getByRole('button', { name: /Notifications/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /try again/i }))
 
-    const bellButton = screen.getByRole('button', { name: /Notifications/i })
-    await userEvent.click(bellButton)
-
-    // In a correct system, the list returned to the user should not contain other users' alerts.
-    // If it does contain foreign notification (e.g. by API return), we verify it is rendered but we make sure the component handles routing access controls.
-    expect(await screen.findByText('Secret Payroll Notification')).toBeInTheDocument()
+    expect(await screen.findByText(/no notifications yet/i)).toBeInTheDocument()
+    expect(notificationsApi.listNotifications).toHaveBeenCalledTimes(2)
   })
 })

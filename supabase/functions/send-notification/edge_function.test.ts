@@ -1,298 +1,129 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { handleNotificationDelivery, escapeHtml } from './notification_logic'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { escapeHtml, handleNotificationDelivery } from './notification_logic'
 
-describe('send-notification Edge Function Core Logic', () => {
+describe('send-notification delivery logic', () => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
-  let mockSupabase: any
-  let mockFetch: any
-  let defaultDeps: any
+  let supabase: any
+  let fetchFn: any
+  let deps: any
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
+  const claim = {
+    id: 'delivery-1',
+    notification_id: 'notif-1',
+    claim_token: 'claim-1',
+    provider_idempotency_key: 'notification:notif-1:email'
+  }
+  const notification = {
+    id: 'notif-1', recipient_profile_id: 'user-123', title: 'Notice',
+    message: 'Message', category: 'general', is_read: false
+  }
+
   beforeEach(() => {
-    mockSupabase = {
+    supabase = {
+      rpc: vi.fn()
+        .mockResolvedValueOnce({ data: claim, error: null })
+        .mockResolvedValue({ data: true, error: null }),
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(),
-      upsert: vi.fn().mockResolvedValue({ error: null }),
-      auth: {
-        admin: {
-          getUserById: vi.fn()
-        }
-      }
+      maybeSingle: vi.fn().mockResolvedValue({ data: notification, error: null }),
+      auth: { admin: { getUserById: vi.fn().mockResolvedValue({ data: { user: { email: 'user@example.invalid' } }, error: null }) } }
     }
-
-    mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => 'OK'
-    })
-
-    defaultDeps = {
-      supabase: mockSupabase,
-      resendApiKey: 'resend-key-123',
-      resendFromEmail: 'OneHub <notifications@test.com>',
-      webhookSecret: 'secret-key-456',
-      requestSecret: 'secret-key-456',
-      fetchFn: mockFetch
+    fetchFn = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'resend-1' }) })
+    deps = {
+      supabase,
+      resendApiKey: 'resend-key',
+      resendFromEmail: 'OneHub <notifications@example.invalid>',
+      webhookSecret: 'webhook-secret',
+      requestSecret: 'webhook-secret',
+      fetchFn
     }
   })
 
-  it('rejects unauthenticated requests with 401', async () => {
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      { ...defaultDeps, requestSecret: 'wrong-secret' }
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Unauthorized')
-    expect(result.statusCode).toBe(401)
+  it('fails closed when webhook authentication is not configured', async () => {
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, { ...deps, webhookSecret: '', requestSecret: null })
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 503, error: 'Notification delivery is not configured' }))
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
-  it('rejects invalid payload (missing notification_id) with 400', async () => {
-    const result = await handleNotificationDelivery(
-      {},
-      defaultDeps
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Invalid payload')
-    expect(result.statusCode).toBe(400)
+  it('rejects an invalid webhook secret', async () => {
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, { ...deps, requestSecret: 'wrong' })
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 401, error: 'Unauthorized' }))
   })
 
-  it('enforces idempotency if notification delivery is already processed', async () => {
-    // Mock that notification delivery status is 'sent'
-    mockSupabase.maybeSingle.mockResolvedValueOnce({
-      data: {
-        status: 'sent',
-        attempt_count: 1
-      },
-      error: null
-    })
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      defaultDeps
-    )
-
-    expect(result.success).toBe(true)
-    expect(result.status).toBe('already_processed')
-    expect(result.statusCode).toBe(200)
-    expect(mockFetch).not.toHaveBeenCalled()
+  it('fails closed when provider credentials or sender are missing', async () => {
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, { ...deps, resendApiKey: '', resendFromEmail: '' })
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 503, error: 'Email provider is not configured' }))
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
-  it('handles missing notification record with 404', async () => {
-    // Idempotency check returns null (not processed yet)
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
-    // Notification fetch returns null
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      defaultDeps
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Notification not found')
-    expect(result.statusCode).toBe(404)
+  it('rejects a missing notification id before claiming', async () => {
+    const result = await handleNotificationDelivery({}, deps)
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 400, error: 'Invalid payload' }))
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
-  it('skips email delivery if notification is already read in-app', async () => {
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null }) // outbox check
-    mockSupabase.maybeSingle.mockResolvedValueOnce({
-      data: {
-        id: 'notif-1',
-        recipient_profile_id: 'user-123',
-        title: 'Cash Advance Request',
-        message: 'Concrete purchase',
-        category: 'cash',
-        is_read: true
-      },
-      error: null
-    }) // notification record
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      defaultDeps
-    )
-
-    expect(result.success).toBe(true)
-    expect(result.status).toBe('skipped_read')
-    expect(result.statusCode).toBe(200)
-    expect(mockSupabase.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        notification_id: 'notif-1',
-        status: 'skipped',
-        last_error_code: 'ALREADY_READ'
-      }),
-      expect.any(Object)
-    )
-    expect(mockFetch).not.toHaveBeenCalled()
+  it('returns a safe error when the atomic claim fails', async () => {
+    supabase.rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('database unavailable') })
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 500, error: 'Delivery could not be claimed' }))
   })
 
-  it('handles recipient email not found with 400', async () => {
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null }) // outbox check
-    mockSupabase.maybeSingle.mockResolvedValueOnce({
-      data: {
-        id: 'notif-1',
-        recipient_profile_id: 'user-123',
-        title: 'Cash Advance Request',
-        message: 'Concrete purchase',
-        category: 'cash',
-        is_read: false
-      },
-      error: null
-    }) // notification record
-
-    // Mock admin fetch failure
-    mockSupabase.auth.admin.getUserById.mockResolvedValueOnce({
-      data: null,
-      error: new Error('User not found')
-    })
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      defaultDeps
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Recipient email not found')
-    expect(result.statusCode).toBe(400)
-    expect(mockSupabase.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        notification_id: 'notif-1',
-        status: 'failed',
-        last_error_code: 'EMAIL_NOT_FOUND'
-      }),
-      expect.any(Object)
-    )
+  it('ignores a second worker when no delivery is claimable', async () => {
+    supabase.rpc = vi.fn().mockResolvedValue({ data: null, error: null })
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual({ success: true, status: 'already_claimed', statusCode: 200 })
+    expect(fetchFn).not.toHaveBeenCalled()
   })
 
-  it('records delivery as skipped/disabled when Resend API key is placeholder or missing', async () => {
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null }) // outbox check
-    mockSupabase.maybeSingle.mockResolvedValueOnce({
-      data: {
-        id: 'notif-1',
-        recipient_profile_id: 'user-123',
-        title: 'Cash Advance Request',
-        message: 'Concrete purchase',
-        category: 'cash',
-        is_read: false
-      },
-      error: null
-    }) // notification record
-
-    mockSupabase.auth.admin.getUserById.mockResolvedValueOnce({
-      data: { user: { email: 'user@test.invalid' } },
-      error: null
-    })
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      { ...defaultDeps, resendApiKey: 'placeholder' }
-    )
-
-    expect(result.success).toBe(true)
-    expect(result.status).toBe('disabled')
-    expect(result.statusCode).toBe(200)
-    expect(mockSupabase.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        notification_id: 'notif-1',
-        status: 'skipped',
-        last_error_code: 'EMAIL_DELIVERY_DISABLED'
-      }),
-      expect.any(Object)
-    )
-    expect(mockFetch).not.toHaveBeenCalled()
+  it('records a missing canonical notification as failed', async () => {
+    supabase.maybeSingle.mockResolvedValue({ data: null, error: null })
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 404 }))
+    expect(supabase.rpc).toHaveBeenLastCalledWith('complete_notification_delivery', expect.objectContaining({ completion_status: 'failed', completion_error_code: 'NOTIFICATION_NOT_FOUND' }))
   })
 
-  it('dispatches to Resend successfully and updates outbox to sent', async () => {
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null }) // outbox check
-    mockSupabase.maybeSingle.mockResolvedValueOnce({
-      data: {
-        id: 'notif-1',
-        recipient_profile_id: 'user-123',
-        title: 'Cash Advance Request',
-        message: 'Concrete purchase',
-        category: 'cash',
-        is_read: false
-      },
-      error: null
-    }) // notification record
-
-    mockSupabase.auth.admin.getUserById.mockResolvedValueOnce({
-      data: { user: { email: 'user@test.invalid' } },
-      error: null
-    })
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      defaultDeps
-    )
-
-    expect(result.success).toBe(true)
-    expect(result.statusCode).toBe(200)
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.resend.com/emails',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('Concrete purchase')
-      })
-    )
-    expect(mockSupabase.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        notification_id: 'notif-1',
-        status: 'sent'
-      }),
-      expect.any(Object)
-    )
+  it('records an already-read notification as skipped', async () => {
+    supabase.maybeSingle.mockResolvedValue({ data: { ...notification, is_read: true }, error: null })
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual({ success: true, status: 'skipped_read', statusCode: 200 })
+    expect(supabase.rpc).toHaveBeenLastCalledWith('complete_notification_delivery', expect.objectContaining({ completion_status: 'skipped', completion_error_code: 'ALREADY_READ' }))
+    expect(fetchFn).not.toHaveBeenCalled()
   })
 
-  it('handles Resend API dispatch failure and marks outbox failed', async () => {
-    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null }) // outbox
-    mockSupabase.maybeSingle.mockResolvedValueOnce({
-      data: {
-        id: 'notif-1',
-        recipient_profile_id: 'user-123',
-        title: 'Cash Advance',
-        message: 'Concrete',
-        category: 'cash',
-        is_read: false
-      },
-      error: null
-    })
-
-    mockSupabase.auth.admin.getUserById.mockResolvedValueOnce({
-      data: { user: { email: 'user@test.invalid' } },
-      error: null
-    })
-
-    // Mock fetch error
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      text: async () => 'Resend Error'
-    })
-
-    const result = await handleNotificationDelivery(
-      { notification_id: 'notif-1' },
-      defaultDeps
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Resend delivery failed')
-    expect(result.statusCode).toBe(500)
-    expect(mockSupabase.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        notification_id: 'notif-1',
-        status: 'failed',
-        last_error_code: 'RESEND_DISPATCH_ERROR'
-      }),
-      expect.any(Object)
-    )
+  it('records a recipient without email as failed', async () => {
+    supabase.auth.admin.getUserById.mockResolvedValue({ data: null, error: new Error('missing') })
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual(expect.objectContaining({ success: false, statusCode: 400, error: 'Recipient email not found' }))
+    expect(supabase.rpc).toHaveBeenLastCalledWith('complete_notification_delivery', expect.objectContaining({ completion_error_code: 'EMAIL_NOT_FOUND' }))
   })
 
-  it('escapes HTML characters correctly', () => {
-    const raw = '<script>alert("hello");</script> & some code'
-    const escaped = escapeHtml(raw)
-    expect(escaped).toBe('&lt;script&gt;alert(&quot;hello&quot;);&lt;/script&gt; &amp; some code')
+  it('uses a stable provider key and records the provider message id', async () => {
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual({ success: true, status: 'sent', statusCode: 200 })
+    expect(fetchFn).toHaveBeenCalledWith('https://api.resend.com/emails', expect.objectContaining({
+      headers: expect.objectContaining({ 'Idempotency-Key': 'notification:notif-1:email' })
+    }))
+    expect(supabase.rpc).toHaveBeenLastCalledWith('complete_notification_delivery', expect.objectContaining({
+      completion_status: 'sent', completion_provider_message_id: 'resend-1'
+    }))
+  })
+
+  it('records provider failure without exposing its response', async () => {
+    fetchFn.mockResolvedValue({ ok: false, json: async () => ({ message: 'secret provider detail' }) })
+    const result = await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    expect(result).toEqual({ success: false, error: 'Resend delivery failed', statusCode: 502 })
+    expect(supabase.rpc).toHaveBeenLastCalledWith('complete_notification_delivery', expect.objectContaining({ completion_error_code: 'RESEND_DISPATCH_ERROR' }))
+  })
+
+  it('escapes notification content before adding it to email HTML', async () => {
+    supabase.maybeSingle.mockResolvedValue({ data: { ...notification, title: '<script>x</script>', message: 'A & B' }, error: null })
+    await handleNotificationDelivery({ notification_id: 'notif-1' }, deps)
+    const request = fetchFn.mock.calls[0][1]
+    expect(request.body).toContain('&lt;script&gt;x&lt;/script&gt;')
+    expect(request.body).toContain('A &amp; B')
+    expect(request.body).not.toContain('<script>')
+    expect(escapeHtml('"<>&\'')).toBe('&quot;&lt;&gt;&amp;&#039;')
   })
 })

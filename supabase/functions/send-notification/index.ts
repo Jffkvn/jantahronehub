@@ -6,20 +6,29 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? ''
-    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'OneHub Notifications <notifications@egypro-onehub.com>'
-    const webhookSecret = Deno.env.get('WEBHOOK_SECRET') ?? 'secret_notifications_webhook_2026'
+    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? ''
+    const webhookSecret = Deno.env.get('WEBHOOK_SECRET') ?? ''
 
-    const requestSecret = req.headers.get('X-Webhook-Secret')
+    if (!supabaseUrl || !supabaseServiceKey || !webhookSecret) {
+      return new Response(JSON.stringify({ success: false, error: 'Notification delivery is not configured' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 503
+      })
+    }
+    if (!resendApiKey || !resendFromEmail) {
+      return new Response(JSON.stringify({ success: false, error: 'Email provider is not configured' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 503
+      })
+    }
+
     const body = await req.json().catch(() => ({}))
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
     const result = await handleNotificationDelivery(body, {
-      supabase,
+      supabase: createClient(supabaseUrl, supabaseServiceKey),
       resendApiKey,
       resendFromEmail,
       webhookSecret,
-      requestSecret,
+      requestSecret: req.headers.get('X-Webhook-Secret'),
       fetchFn: fetch
     })
 
@@ -27,7 +36,6 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       status: result.statusCode
     })
-
   } catch {
     return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
       headers: { 'Content-Type': 'application/json' },

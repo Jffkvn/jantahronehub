@@ -10,11 +10,19 @@ export interface Notification {
   created_at: string
 }
 
+export type NotificationCategory = Notification['category']
+
+export interface NotificationPreference {
+  profile_id: string
+  category: NotificationCategory
+  email_enabled: boolean
+}
+
 export const notificationsApi = {
   async listNotifications(): Promise<Notification[]> {
     const { data, error } = await getSupabaseClient()
       .from('notifications')
-      .select('*')
+      .select('id, recipient_profile_id, title, message, is_read, category, created_at')
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -31,6 +39,23 @@ export const notificationsApi = {
 
   async markAllAsRead(): Promise<void> {
     const { error } = await getSupabaseClient().rpc('mark_all_notifications_as_read')
+    if (error) throw error
+  },
+
+  async listPreferences(): Promise<NotificationPreference[]> {
+    const { data, error } = await getSupabaseClient()
+      .from('notification_preferences')
+      .select('profile_id, category, email_enabled')
+      .order('category')
+    if (error) throw error
+    return (data || []) as NotificationPreference[]
+  },
+
+  async setEmailPreference(category: NotificationCategory, enabled: boolean): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('set_notification_email_preference', {
+      preference_category: category,
+      preference_enabled: enabled
+    })
     if (error) throw error
   }
 }

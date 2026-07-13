@@ -315,33 +315,8 @@ create trigger tr_payroll_run_notification
 create or replace function public.trigger_send_notification_webhook()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  begin
-    if exists (
-      select 1 from pg_catalog.pg_proc p
-      join pg_catalog.pg_namespace n on p.pronamespace = n.oid
-      where n.nspname = 'net' and p.proname = 'http_post'
-    ) then
-      execute 'select net.http_post(
-        url := $1,
-        headers := $2,
-        body := $3
-      )' using
-        'http://localhost:54321/functions/v1/send-notification',
-        jsonb_build_object('Content-Type', 'application/json'),
-        jsonb_build_object(
-          'record', json_build_object(
-            'id', new.id,
-            'recipient_profile_id', new.recipient_profile_id,
-            'title', new.title,
-            'message', new.message,
-            'category', new.category,
-            'created_at', new.created_at
-          )
-        )::text;
-    end if;
-  exception when others then
-    null;
-  end;
+  -- In-app delivery is the safe baseline. A later migration installs the
+  -- configurable outbox webhook after deployment settings are available.
   return new;
 end;
 $$;
