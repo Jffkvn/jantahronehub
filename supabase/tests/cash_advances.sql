@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(32);
+select plan(58);
 
 -- 1. Setup checks
 select has_table('public', 'cash_advance_requests', 'cash_advance_requests table exists');
@@ -528,6 +528,331 @@ select throws_ok(
   '22023',
   'Validation: Rejection reason is required',
   'Rejecting a cash expense requires a reason'
+);
+
+-- Completed accountabilities require a controlled, audited correction cycle.
+select has_function(
+  'public',
+  'rpc_reopen_cash_advance',
+  array['uuid', 'text'],
+  'Cash advance reopen RPC exists'
+);
+select has_function(
+  'public',
+  'rpc_reverse_cash_expense',
+  array['uuid', 'text'],
+  'Accepted cash expense reversal RPC exists'
+);
+select has_function(
+  'public',
+  'rpc_reverse_cash_return',
+  array['uuid', 'text'],
+  'Cash return reversal RPC exists'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_reopen_cash_advance(%L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'Unauthorized reopen attempt'
+  ),
+  '42501',
+  'Unauthorized: Insufficient privileges to reopen cash advances',
+  'Coordinator cannot reopen a completed cash advance'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_reopen_cash_advance(%L, null)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  '22023',
+  'Validation: Reopen reason is required',
+  'CFO must provide a reason to reopen a completed cash advance'
+);
+
+select lives_ok(
+  format(
+    'select public.rpc_reopen_cash_advance(%L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'Correcting returned cash reference'
+  ),
+  'CFO can reopen a completed cash advance with a reason'
+);
+
+select results_eq(
+  $$
+    select status
+    from public.cash_advance_requests
+    where purpose = 'Site supplies transport'
+  $$,
+  $$ select 'disbursed'::text $$,
+  'Reopened cash advance returns to active disbursed status'
+);
+
+reset role;
+select results_eq(
+  $$
+    select event_type, reason
+    from public.audit_events
+    where entity_type = 'cash_advance'
+      and entity_id = (
+        select id::text
+        from public.cash_advance_requests
+        where purpose = 'Site supplies transport'
+      )
+      and event_type = 'cash_advance.reopened'
+  $$,
+  $$ select 'cash_advance.reopened'::text, 'Correcting returned cash reference'::text $$,
+  'Reopening writes an append-only audit event with its reason'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select lives_ok(
+  format(
+    'select public.rpc_reverse_cash_return(%L, %L)',
+    (select id from public.cash_advance_returns where receipt_reference = 'MM-RET-5592' limit 1),
+    'Incorrect return receipt reference'
+  ),
+  'CFO can reverse an incorrect cash return after reopening'
+);
+
+select results_eq(
+  format(
+    'select public.get_cash_advance_balance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  $$ select 880000.00::numeric $$,
+  'Reversing the incorrect return restores its amount to the outstanding balance'
+);
+
+reset role;
+select results_eq(
+  $$
+    select event_type, reason
+    from public.audit_events
+    where entity_type = 'cash_return'
+      and entity_id = (
+        select id::text
+        from public.cash_advance_returns
+        where receipt_reference = 'MM-RET-5592'
+      )
+      and event_type = 'cash_advance.return_reversed'
+  $$,
+  $$ select 'cash_advance.return_reversed'::text, 'Incorrect return receipt reference'::text $$,
+  'Cash return reversal writes an append-only audit event'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select lives_ok(
+  format(
+    'select public.rpc_return_cash(%L, current_date, 880000.00, %L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'MM-RET-5592-CORRECTED',
+    'Corrected returned cash record'
+  ),
+  'CFO can replace a reversed cash return with a corrected ledger record'
+);
+
+select lives_ok(
+  format(
+    'select public.rpc_close_cash_advance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  'CFO can close the corrected accountability again'
+);
+
+select results_eq(
+  $$
+    select status
+    from public.cash_advance_requests
+    where purpose = 'Site supplies transport'
+  $$,
+  $$ select 'completed'::text $$,
+  'Corrected accountability returns to completed status'
+);
+
+-- Accepted-expense corrections follow the same reopen/reverse/replace pattern.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_reverse_cash_expense(%L, %L)',
+    (
+      select expense.id
+      from public.cash_advance_expenses expense
+      join public.cash_advance_requests request on request.id = expense.cash_advance_id
+      where request.purpose = 'Site supplies transport'
+        and expense.explanation = 'Transport of concrete bags'
+      limit 1
+    ),
+    'Unauthorized expense reversal'
+  ),
+  '42501',
+  'Unauthorized: Insufficient privileges to reverse cash expenses',
+  'Coordinator cannot reverse an accepted cash expense'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  format(
+    'select public.rpc_reverse_cash_expense(%L, %L)',
+    (
+      select expense.id
+      from public.cash_advance_expenses expense
+      join public.cash_advance_requests request on request.id = expense.cash_advance_id
+      where request.purpose = 'Site supplies transport'
+        and expense.explanation = 'Transport of concrete bags'
+      limit 1
+    ),
+    'Premature expense reversal'
+  ),
+  'L0008',
+  'Conflict: Reopen the completed cash advance before reversing an expense',
+  'CFO cannot reverse an expense while its accountability remains closed'
+);
+
+select lives_ok(
+  format(
+    'select public.rpc_reopen_cash_advance(%L, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'Correcting accepted expense classification'
+  ),
+  'CFO can reopen the corrected accountability for an expense correction'
+);
+
+select lives_ok(
+  format(
+    'select public.rpc_reverse_cash_expense(%L, %L)',
+    (
+      select expense.id
+      from public.cash_advance_expenses expense
+      join public.cash_advance_requests request on request.id = expense.cash_advance_id
+      where request.purpose = 'Site supplies transport'
+        and expense.explanation = 'Transport of concrete bags'
+      limit 1
+    ),
+    'Incorrect expense category'
+  ),
+  'CFO can reverse an accepted expense after reopening'
+);
+
+select results_eq(
+  $$
+    select expense.status
+    from public.cash_advance_expenses expense
+    join public.cash_advance_requests request on request.id = expense.cash_advance_id
+    where request.purpose = 'Site supplies transport'
+      and expense.explanation = 'Transport of concrete bags'
+  $$,
+  $$ select 'reversed'::text $$,
+  'Reversed expense remains in the ledger with reversed status'
+);
+
+select results_eq(
+  format(
+    'select public.get_cash_advance_balance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  $$ select 120000.00::numeric $$,
+  'Reversing the accepted expense restores its amount to the outstanding balance'
+);
+
+reset role;
+select results_eq(
+  $$
+    select event_type, reason
+    from public.audit_events
+    where entity_type = 'cash_expense'
+      and entity_id = (
+        select expense.id::text
+        from public.cash_advance_expenses expense
+        join public.cash_advance_requests request on request.id = expense.cash_advance_id
+        where request.purpose = 'Site supplies transport'
+          and expense.explanation = 'Transport of concrete bags'
+      )
+      and event_type = 'cash_advance.expense_reversed'
+  $$,
+  $$ select 'cash_advance.expense_reversed'::text, 'Incorrect expense category'::text $$,
+  'Cash expense reversal writes an append-only audit event'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select lives_ok(
+  format(
+    'select public.rpc_submit_cash_expense(%L, current_date, %L, 120000.00, %L, %L, null, true, %L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'site_transport',
+    'Local Boda Rider',
+    'Corrected transport expense',
+    'Boda boda rider did not have printer/receipt book'
+  ),
+  'Coordinator can submit a corrected replacement expense'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
+
+select lives_ok(
+  format(
+    'select public.rpc_review_cash_expense(%L, true, null)',
+    (
+      select expense.id
+      from public.cash_advance_expenses expense
+      join public.cash_advance_requests request on request.id = expense.cash_advance_id
+      where request.purpose = 'Site supplies transport'
+        and expense.explanation = 'Corrected transport expense'
+      limit 1
+    )
+  ),
+  'CFO can accept the corrected replacement expense'
+);
+
+select results_eq(
+  format(
+    'select public.get_cash_advance_balance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  $$ select 0.00::numeric $$,
+  'Corrected expense restores the accountability to zero balance'
+);
+
+select lives_ok(
+  format(
+    'select public.rpc_close_cash_advance(%L)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1)
+  ),
+  'CFO can close the expense-corrected accountability'
+);
+
+select results_eq(
+  $$
+    select status
+    from public.cash_advance_requests
+    where purpose = 'Site supplies transport'
+  $$,
+  $$ select 'completed'::text $$,
+  'Expense-corrected accountability returns to completed status'
 );
 
 rollback;
