@@ -2,12 +2,18 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(21);
 
 select has_table('public', 'historical_payroll_import_batches', 'historical import batches exist');
 select has_table('public', 'historical_payroll_import_periods', 'historical import periods exist');
 select has_table('public', 'historical_payroll_import_rows', 'historical import rows exist');
 select has_function('public', 'commit_historical_payroll_import', array['text','text','jsonb'], 'historical payroll import RPC exists');
+select has_function(
+  'public',
+  'commit_historical_payroll_import_reviewed',
+  array['text','text','jsonb','jsonb'],
+  'reviewed employee profile and payroll import RPC exists'
+);
 
 insert into auth.users (id, email)
 values
@@ -47,6 +53,13 @@ select throws_ok(
   '42501',
   'payroll.migrate_history permission is required',
   'HR cannot commit protected historical payroll migration'
+);
+
+select throws_ok(
+  $$ select public.commit_historical_payroll_import_reviewed('history.xlsx', repeat('a', 64), '[]'::jsonb, '[]'::jsonb) $$,
+  '42501',
+  'payroll.migrate_history permission is required',
+  'HR cannot call the reviewed employee and payroll migration wrapper'
 );
 
 select set_config('request.jwt.claims', '{"sub":"50000000-0000-0000-0000-000000000001","role":"authenticated","aal":"aal2"}', true);
@@ -108,6 +121,117 @@ select is((select total_net from public.payroll_runs where run_type = 'historica
 select is((select account_number from public.payroll_items where employee_number = 'HIST-001'), 'HIST-001', 'historical payment snapshot comes from workbook payload');
 select is((select count(*) from public.historical_payroll_import_rows where row_hash = 'task15-row-1'), 1::bigint, 'row hash is stored for idempotency');
 select ok((select count(*) from public.audit_events where event_type = 'payroll.history_imported') = 1, 'historical import writes an audit event');
+
+select lives_ok(
+  $$ select public.commit_historical_payroll_import_reviewed(
+    'reviewed-history.xlsx',
+    repeat('c', 64),
+    jsonb_build_array(
+      jsonb_build_object(
+        'action', 'enrich',
+        'employee_id', '51000000-0000-0000-0000-000000000001',
+        'employee_number', 'HIST-001',
+        'legal_name', 'Historical Employee',
+        'company_email', 'historical.employee@example.invalid',
+        'start_date', '2025-01-01',
+        'end_date', null,
+        'employment_type', 'full_time',
+        'contract_type', 'permanent'
+      ),
+      jsonb_build_object(
+        'action', 'create',
+        'employee_id', '51000000-0000-0000-0000-000000000002',
+        'employee_number', 'HIST-002',
+        'legal_name', 'Reviewed New Employee',
+        'company_email', 'reviewed.new@example.invalid',
+        'start_date', '2025-01-01',
+        'end_date', null,
+        'employment_type', 'full_time',
+        'contract_type', 'permanent'
+      )
+    ),
+    jsonb_build_array(
+      jsonb_build_object(
+        'sheet_name', 'May 2026',
+        'period_start', '2026-05-01',
+        'period_end', '2026-05-31',
+        'label', 'May 2026',
+        'totals', jsonb_build_object('gross', 500000, 'paye', 0, 'nssf_employee', 0, 'nssf_employer', 0, 'wht', 0, 'deductions', 0, 'net', 500000),
+        'rows', jsonb_build_array(
+          jsonb_build_object(
+            'row_number', 3,
+            'row_hash', 'task15-reviewed-row-1',
+            'employee_id', '51000000-0000-0000-0000-000000000002',
+            'employee_number', 'HIST-002',
+            'employee_name', 'Reviewed New Employee',
+            'tax_treatment', 'local',
+            'nssf_applicable', false,
+            'percent_of_month_worked', 100,
+            'contractual_gross', 500000,
+            'prorated_gross', 500000,
+            'overtime_hours', 0,
+            'overtime_rate', 0,
+            'overtime_pay', 0,
+            'allowances', 0,
+            'taxable_gross', 500000,
+            'paye', 0,
+            'nssf_employee', 0,
+            'nssf_employer', 0,
+            'wht', 0,
+            'salary_advance_deduction', 0,
+            'other_deductions', 0,
+            'total_deductions', 0,
+            'net_pay', 500000,
+            'payment_method', 'cash'
+          )
+        )
+      )
+    )
+  ) $$,
+  'reviewed employee changes and payroll commit atomically'
+);
+
+select is(
+  (select count(*) from public.employees where id = '51000000-0000-0000-0000-000000000002'),
+  1::bigint,
+  'reviewed create adds the employee profile'
+);
+
+select is(
+  (select company_email from public.employees where id = '51000000-0000-0000-0000-000000000001'),
+  'historical.employee@example.invalid',
+  'reviewed enrichment fills a blank company email'
+);
+
+select throws_ok(
+  $$ select public.commit_historical_payroll_import_reviewed(
+    'reviewed-history.xlsx',
+    repeat('c', 64),
+    jsonb_build_array(
+      jsonb_build_object(
+        'action', 'create',
+        'employee_id', '51000000-0000-0000-0000-000000000003',
+        'employee_number', 'HIST-003',
+        'legal_name', 'Must Roll Back',
+        'company_email', 'rollback@example.invalid',
+        'start_date', '2025-01-01',
+        'end_date', null,
+        'employment_type', 'full_time',
+        'contract_type', 'permanent'
+      )
+    ),
+    jsonb_build_array(jsonb_build_object('unused', true))
+  ) $$,
+  '23505',
+  'This historical payroll workbook has already been imported.',
+  'duplicate file rejection rolls back reviewed profile changes'
+);
+
+select is(
+  (select count(*) from public.employees where id = '51000000-0000-0000-0000-000000000003'),
+  0::bigint,
+  'failed reviewed import leaves no employee profile behind'
+);
 
 select throws_ok(
   $$ select public.commit_historical_payroll_import('history.xlsx', repeat('b', 64), jsonb_build_array(
