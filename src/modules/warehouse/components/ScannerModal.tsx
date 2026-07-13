@@ -35,6 +35,7 @@ export function ScannerModal({ open, onClose, onActionCompleted }: ScannerModalP
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState(0)
   const [receiptRef, setReceiptRef] = useState('')
+  const [issueCondition, setIssueCondition] = useState('good')
 
   // Return/Damage state
   const [returnCondition, setReturnCondition] = useState<'good' | 'damaged' | 'lost'>('good')
@@ -121,7 +122,7 @@ export function ScannerModal({ open, onClose, onActionCompleted }: ScannerModalP
     if (!open) return
     inventoryApi.listWarehouses().then(setWarehouses).catch(console.error)
     inventoryApi.listRequests().then((reqs) => {
-      setApprovedRequests(reqs.filter((r) => r.status === 'approved' || r.status === 'pending_approval'))
+      setApprovedRequests(reqs.filter((r) => r.status === 'approved'))
     }).catch(console.error)
   }, [open])
 
@@ -185,7 +186,21 @@ export function ScannerModal({ open, onClose, onActionCompleted }: ScannerModalP
     setSuccessMsg('')
 
     try {
-      await inventoryApi.issueStock(selectedRequestId, selectedWarehouseId)
+      const requestItems = await inventoryApi.getRequestItems(selectedRequestId)
+      const matchingRequestItem = requestItems.find((item) => (
+        item.equipment_asset_id === scannedItem.id
+        && (item.quantity_issued ?? 0) < item.quantity
+      ))
+
+      if (!matchingRequestItem) {
+        throw new Error('The scanned asset is not included in the selected stock request.')
+      }
+
+      await inventoryApi.issueRequestItem(
+        matchingRequestItem.id,
+        selectedWarehouseId,
+        issueCondition,
+      )
       setSuccessMsg(`Successfully checked out/issued ${scannedItem.name} (${scannedItem.code})`)
       onActionCompleted?.()
       setTimeout(() => onClose(), 2000)
@@ -353,8 +368,9 @@ export function ScannerModal({ open, onClose, onActionCompleted }: ScannerModalP
               <form onSubmit={handleCheckoutSubmit} className="oh-form-stack">
                 <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Asset is <strong>Available</strong>. Choose an approved stock request to record handout.</p>
                 <div>
-                  <label className="oh-label">Fulfillment Warehouse</label>
+                  <label className="oh-label" htmlFor="scanner-fulfillment-warehouse">Fulfillment Warehouse</label>
                   <select
+                    id="scanner-fulfillment-warehouse"
                     className="oh-select"
                     value={selectedWarehouseId}
                     onChange={(e) => setSelectedWarehouseId(e.target.value)}
@@ -367,8 +383,9 @@ export function ScannerModal({ open, onClose, onActionCompleted }: ScannerModalP
                   </select>
                 </div>
                 <div>
-                  <label className="oh-label">Approved Stock Request</label>
+                  <label className="oh-label" htmlFor="scanner-approved-request">Approved Stock Request</label>
                   <select
+                    id="scanner-approved-request"
                     className="oh-select"
                     value={selectedRequestId}
                     onChange={(e) => setSelectedRequestId(e.target.value)}
@@ -383,6 +400,18 @@ export function ScannerModal({ open, onClose, onActionCompleted }: ScannerModalP
                         </option>
                       ))}
                   </select>
+                </div>
+                <div>
+                  <label className="oh-label" htmlFor="scanner-issue-condition">Condition at handout</label>
+                  <input
+                    id="scanner-issue-condition"
+                    type="text"
+                    className="oh-input"
+                    value={issueCondition}
+                    onChange={(event) => setIssueCondition(event.target.value)}
+                    placeholder="e.g. good, minor cosmetic wear"
+                    required
+                  />
                 </div>
                 <Button type="submit" loading={loading} disabled={!selectedRequestId || !selectedWarehouseId}>
                   Confirm Handout / Checkout

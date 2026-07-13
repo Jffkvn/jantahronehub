@@ -188,7 +188,8 @@ export function RequestDetailPage() {
                   <tr>
                     <th>Item Type</th>
                     <th>Identifier / Name</th>
-                    <th>Qty</th>
+                    <th>Requested</th>
+                    <th>Issued</th>
                     <th>Est. Unit Price</th>
                     <th>Total Value</th>
                   </tr>
@@ -212,6 +213,11 @@ export function RequestDetailPage() {
                           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{code}</div>
                         </td>
                         <td>{item.quantity}</td>
+                        <td>
+                          <span className={`oh-badge ${(item.quantity_issued ?? 0) === item.quantity ? 'oh-badge--success' : ''}`}>
+                            {item.quantity_issued ?? 0} / {item.quantity}
+                          </span>
+                        </td>
                         <td>UGX {item.estimated_unit_price.toLocaleString()}</td>
                         <td style={{ fontWeight: 700 }}>UGX {total.toLocaleString()}</td>
                       </tr>

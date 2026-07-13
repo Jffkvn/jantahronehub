@@ -59,6 +59,9 @@ export interface StockRequestItem {
   consumable_item_id: string | null;
   equipment_asset_id: string | null;
   quantity: number;
+  quantity_issued?: number;
+  fulfilled_by?: string | null;
+  fulfilled_at?: string | null;
   estimated_unit_price: number;
   consumable_items?: { name: string; sku: string; unit_of_measure: string };
   equipment_assets?: { model_name: string; serial_number: string };
@@ -245,6 +248,15 @@ export const inventoryApi = {
     const { error } = await getSupabaseClient().rpc('rpc_issue_stock', {
       p_request_id: requestId,
       p_warehouse_id: warehouseId
+    })
+    if (error) throw error
+  },
+
+  async issueRequestItem(requestItemId: string, warehouseId: string, issueCondition: string): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('rpc_issue_request_item', {
+      p_request_item_id: requestItemId,
+      p_warehouse_id: warehouseId,
+      p_issue_condition: issueCondition
     })
     if (error) throw error
   },

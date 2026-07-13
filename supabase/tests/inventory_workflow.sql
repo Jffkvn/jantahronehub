@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(50);
+select plan(72);
 
 -- 1. Table existence checks
 select has_table('public', 'warehouses', 'warehouses table exists');
@@ -17,6 +17,7 @@ select has_table('public', 'stock_request_items', 'stock_request_items table exi
 select has_table('public', 'stock_movements', 'stock_movements table exists');
 select has_table('public', 'asset_returns', 'asset_returns table exists');
 select has_table('public', 'damage_reports', 'damage_reports table exists');
+select has_table('public', 'asset_custody', 'asset_custody table exists');
 
 -- 2. Function presence checks
 select has_function('public', 'rpc_receive_stock', array['uuid', 'text', 'jsonb'], 'rpc_receive_stock function exists');
@@ -25,6 +26,22 @@ select has_function('public', 'rpc_approve_stock_request', array['uuid'], 'rpc_a
 select has_function('public', 'rpc_issue_stock', array['uuid', 'uuid'], 'rpc_issue_stock function exists');
 select has_function('public', 'rpc_return_asset', array['uuid', 'text', 'uuid', 'text'], 'rpc_return_asset function exists');
 select has_function('public', 'rpc_adjust_stock', array['uuid', 'uuid', 'uuid', 'integer', 'text'], 'rpc_adjust_stock function exists');
+select has_function('public', 'rpc_issue_request_item', array['uuid', 'uuid', 'text'], 'rpc_issue_request_item function exists');
+select has_function('public', 'rpc_transfer_asset_custody', array['uuid', 'uuid', 'text', 'text'], 'rpc_transfer_asset_custody function exists');
+select table_privs_are(
+  'public', 'asset_custody', 'authenticated', array['SELECT'],
+  'authenticated clients can read but cannot directly mutate custody history'
+);
+select function_privs_are(
+  'public', 'rpc_issue_request_item', array['uuid', 'uuid', 'text'],
+  'authenticated', array['EXECUTE'],
+  'authenticated clients call the guarded exact-item issue function'
+);
+select function_privs_are(
+  'public', 'rpc_transfer_asset_custody', array['uuid', 'uuid', 'text', 'text'],
+  'authenticated', array['EXECUTE'],
+  'authenticated clients call the guarded custody-transfer function'
+);
 
 -- 3. Setup test data
 insert into auth.users (id, email)
@@ -276,6 +293,36 @@ select lives_ok(
 reset role;
 select is((select sum(quantity)::bigint from public.stock_movements where consumable_item_id = (select id from test_consumable)), 45::bigint, 'remaining cement is 45 bags');
 select is((select status from public.equipment_assets where id = (select id from test_equipment)), 'assigned', 'equipment status is updated to assigned');
+select is(
+  (
+    select count(*)::bigint
+    from public.asset_custody
+    where equipment_asset_id = (select id from test_equipment)
+      and ended_at is null
+  ),
+  1::bigint,
+  'issuing equipment creates exactly one active custody record'
+);
+select is(
+  (
+    select custodian_profile_id
+    from public.asset_custody
+    where equipment_asset_id = (select id from test_equipment)
+      and ended_at is null
+  ),
+  '60000000-0000-0000-0000-000000000003'::uuid,
+  'custody is assigned to the stock requester'
+);
+select is(
+  (
+    select quantity_issued
+    from public.stock_request_items
+    where request_id = (select id from test_request)
+      and equipment_asset_id = (select id from test_equipment)
+  ),
+  1,
+  'the fulfilled request item records its issued quantity'
+);
 
 -- 10. Return equipment asset
 set local role authenticated;
@@ -296,6 +343,249 @@ select lives_ok(
 -- Verify returned equipment status
 reset role;
 select is((select status from public.equipment_assets where id = (select id from test_equipment)), 'available', 'equipment status is restored to available');
+select is(
+  (
+    select end_reason
+    from public.asset_custody
+    where equipment_asset_id = (select id from test_equipment)
+    order by issued_at desc
+    limit 1
+  ),
+  'returned',
+  'return closes custody with an explicit returned outcome'
+);
+select ok(
+  (
+    select return_id is not null
+      and returned_to_warehouse_id = (select id from test_warehouse)
+      and return_condition = 'good'
+    from public.asset_custody
+    where equipment_asset_id = (select id from test_equipment)
+    order by issued_at desc
+    limit 1
+  ),
+  'closed custody links to the return record, warehouse and condition'
+);
+
+-- Custody transfers close the old assignment and preserve a new active owner.
+create temp table test_transfer_asset (id uuid);
+with ins_asset as (
+  insert into public.equipment_assets (
+    category_id, serial_number, model_name, status, current_warehouse_id, is_sensitive
+  )
+  select id, 'EQ-TRANSFER-001', 'Transfer Generator', 'available',
+         (select id from test_warehouse), true
+  from test_category
+  returning id
+)
+insert into test_transfer_asset (id) select id from ins_asset;
+
+create temp table test_transfer_request (id uuid);
+with ins_req as (
+  insert into public.stock_requests (
+    requested_by, project_name, status, total_estimated_value, escalated_to_cfo
+  ) values (
+    '60000000-0000-0000-0000-000000000003',
+    'Transfer Project',
+    'approved',
+    2500000,
+    true
+  ) returning id
+)
+insert into test_transfer_request (id) select id from ins_req;
+
+insert into public.stock_request_items (
+  request_id, equipment_asset_id, quantity, estimated_unit_price
+)
+select (select id from test_transfer_request), (select id from test_transfer_asset), 1, 2500000;
+
+grant select on test_transfer_asset, test_transfer_request to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select lives_ok(
+  $$
+  select public.rpc_issue_stock(
+    (select id from test_transfer_request),
+    (select id from test_warehouse)
+  )
+  $$,
+  'warehouse manager can create the initial custody assignment'
+);
+
+select lives_ok(
+  $$
+  select public.rpc_transfer_asset_custody(
+    (select id from test_transfer_asset),
+    '60000000-0000-0000-0000-000000000004'::uuid,
+    'Finance Oversight',
+    'Transferred to CFO for controlled deployment'
+  )
+  $$,
+  'warehouse manager can transfer active custody with a reason'
+);
+
+reset role;
+select is(
+  (
+    select custodian_profile_id
+    from public.asset_custody
+    where equipment_asset_id = (select id from test_transfer_asset)
+      and ended_at is null
+  ),
+  '60000000-0000-0000-0000-000000000004'::uuid,
+  'the transferred asset has the new active custodian'
+);
+select results_eq(
+  $$
+    select end_reason, project_name
+    from public.asset_custody
+    where equipment_asset_id = (select id from test_transfer_asset)
+    order by (previous_custody_id is not null), issued_at, id
+  $$,
+  $$
+    values
+      ('transferred'::text, 'Transfer Project'::text),
+      (null::text, 'Finance Oversight'::text)
+  $$,
+  'custody history preserves the ended assignment and active transfer'
+);
+
+-- Scanner fulfilment issues one exact equipment line without closing unrelated lines.
+create temp table test_scanner_assets (case_key text primary key, id uuid);
+with ins_asset as (
+  insert into public.equipment_assets (
+    category_id, serial_number, model_name, status, current_warehouse_id, is_sensitive
+  )
+  select id, 'EQ-SCANNER-001', 'Scanner Asset One', 'available',
+         (select id from test_warehouse), false
+  from test_category
+  returning id
+)
+insert into test_scanner_assets (case_key, id) select 'first', id from ins_asset;
+
+with ins_asset as (
+  insert into public.equipment_assets (
+    category_id, serial_number, model_name, status, current_warehouse_id, is_sensitive
+  )
+  select id, 'EQ-SCANNER-002', 'Scanner Asset Two', 'available',
+         (select id from test_warehouse), false
+  from test_category
+  returning id
+)
+insert into test_scanner_assets (case_key, id) select 'second', id from ins_asset;
+
+create temp table test_scanner_request (id uuid);
+with ins_req as (
+  insert into public.stock_requests (
+    requested_by, project_name, status, total_estimated_value, escalated_to_cfo
+  ) values (
+    '60000000-0000-0000-0000-000000000003',
+    'Scanner Project',
+    'approved',
+    300000,
+    false
+  ) returning id
+)
+insert into test_scanner_request (id) select id from ins_req;
+
+create temp table test_scanner_request_items (case_key text primary key, id uuid);
+with ins_item as (
+  insert into public.stock_request_items (
+    request_id, equipment_asset_id, quantity, estimated_unit_price
+  )
+  select (select id from test_scanner_request), id, 1, 150000
+  from test_scanner_assets where case_key = 'first'
+  returning id
+)
+insert into test_scanner_request_items (case_key, id) select 'first', id from ins_item;
+
+with ins_item as (
+  insert into public.stock_request_items (
+    request_id, equipment_asset_id, quantity, estimated_unit_price
+  )
+  select (select id from test_scanner_request), id, 1, 150000
+  from test_scanner_assets where case_key = 'second'
+  returning id
+)
+insert into test_scanner_request_items (case_key, id) select 'second', id from ins_item;
+
+grant select on test_scanner_assets, test_scanner_request, test_scanner_request_items to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select lives_ok(
+  $$
+  select public.rpc_issue_request_item(
+    (select id from test_scanner_request_items where case_key = 'first'),
+    (select id from test_warehouse),
+    'good with minor cosmetic wear'
+  )
+  $$,
+  'scanner can issue the exact selected request item'
+);
+
+reset role;
+select is(
+  (select status from public.stock_requests where id = (select id from test_scanner_request)),
+  'approved',
+  'partially issued request remains approved for its other lines'
+);
+select results_eq(
+  $$
+    select scanner_item.case_key, request_item.quantity_issued
+    from test_scanner_request_items scanner_item
+    join public.stock_request_items request_item on request_item.id = scanner_item.id
+    order by scanner_item.case_key
+  $$,
+  $$ values ('first'::text, 1), ('second'::text, 0) $$,
+  'only the scanned request item is marked issued'
+);
+select is(
+  (
+    select issue_condition
+    from public.asset_custody
+    where stock_request_item_id = (
+      select id from test_scanner_request_items where case_key = 'first'
+    )
+  ),
+  'good with minor cosmetic wear',
+  'scanner checkout preserves the recorded issue condition'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select throws_ok(
+  $$
+  select public.rpc_issue_request_item(
+    (select id from test_scanner_request_items where case_key = 'first'),
+    (select id from test_warehouse),
+    'good'
+  )
+  $$,
+  'L0104',
+  'Conflict: This request item has already been issued.',
+  'scanner replay cannot issue the same request item twice'
+);
+select lives_ok(
+  $$
+  select public.rpc_issue_request_item(
+    (select id from test_scanner_request_items where case_key = 'second'),
+    (select id from test_warehouse),
+    'good'
+  )
+  $$,
+  'scanner can issue the remaining exact request item'
+);
+
+reset role;
+select is(
+  (select status from public.stock_requests where id = (select id from test_scanner_request)),
+  'fulfilled',
+  'request becomes fulfilled only when every line is issued'
+);
 
 -- 11. Test Stock Adjustment via RPC
 set local role authenticated;
