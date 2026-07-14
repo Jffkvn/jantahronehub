@@ -4,6 +4,7 @@ import { inventoryApi, type EquipmentAsset } from '../api/inventory'
 import { Button } from '../../../components/ui/Button'
 import { Modal } from '../../../components/ui/Modal'
 import { ShieldAlert, QrCode, Printer } from 'lucide-react'
+import { renderQrLabel } from '../printQrLabel'
 
 export function EquipmentPage() {
   const queryClient = useQueryClient()
@@ -73,70 +74,24 @@ export function EquipmentPage() {
   }
 
   const handlePrint = () => {
+    if (!selectedAsset) return
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print QR Label - ${selectedAsset?.serial_number}</title>
-          <style>
-            body {
-              font-family: system-ui, sans-serif;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
-              margin: 0;
-              text-align: center;
-            }
-            .label-card {
-              border: 3px solid #000;
-              border-radius: 12px;
-              padding: 20px;
-              max-width: 280px;
-              background: #fff;
-            }
-            .title {
-              font-weight: 800;
-              font-size: 1.1rem;
-              letter-spacing: 1px;
-              margin-bottom: 5px;
-            }
-            .subtitle {
-              font-size: 0.75rem;
-              color: #555;
-              text-transform: uppercase;
-              margin-bottom: 15px;
-            }
-            img {
-              width: 180px;
-              height: 180px;
-            }
-            .details {
-              font-family: monospace;
-              font-size: 0.85rem;
-              margin-top: 10px;
-              word-break: break-all;
-            }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          <div class="label-card">
-            <div class="title">EGYPRO ONEHUB</div>
-            <div class="subtitle">Property Identification Tag</div>
-            <img src="${qrCodeUrl}" alt="QR code" />
-            <div class="details">
-              <strong>MODEL:</strong> ${selectedAsset?.model_name}<br/>
-              <strong>SERIAL:</strong> ${selectedAsset?.serial_number}<br/>
-              <strong>ASSET ID:</strong> ${selectedAsset?.id}
-            </div>
-          </div>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
+    try {
+      renderQrLabel(printWindow.document, {
+        id: selectedAsset.id,
+        modelName: selectedAsset.model_name,
+        serialNumber: selectedAsset.serial_number,
+        qrCodeUrl,
+      })
+      window.setTimeout(() => {
+        printWindow.print()
+        printWindow.close()
+      }, 0)
+    } catch {
+      printWindow.close()
+    }
   }
 
   const filteredAssets = useMemo(() => {

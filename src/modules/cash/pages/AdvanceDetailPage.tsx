@@ -9,6 +9,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { BackLink } from '../../../components/ui/BackLink'
+import { toSafeExternalUrl } from '../../../lib/security/safeUrl'
 import { ArrowLeft, AlertTriangle, Check, X, FileText, Image, Landmark } from 'lucide-react'
 
 export function AdvanceDetailPage() {
@@ -426,8 +427,8 @@ export function AdvanceDetailPage() {
                                 <AlertTriangle size={12} /> RECEIPT UNAVAILABLE: {exp.receipt_unavailable_explanation}
                               </span>
                             ) : (
-                              exp.receipt_url && (
-                                <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                              exp.receipt_url && toSafeExternalUrl(exp.receipt_url) && (
+                                <a href={toSafeExternalUrl(exp.receipt_url) ?? undefined} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
                                   <Image size={12} /> View Receipt
                                 </a>
                               )

@@ -9,6 +9,17 @@ function isLocalDevelopmentUrl(url: URL) {
   )
 }
 
+export function toSafeExternalUrl(candidate: string) {
+  try {
+    const url = new URL(candidate)
+    if (url.username || url.password) return null
+    if (url.protocol !== 'https:' && !isLocalDevelopmentUrl(url)) return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
 export function toSafeHttpUrl(
   candidate: string,
   { allowedOrigins }: SafeHttpUrlOptions,

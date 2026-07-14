@@ -9,6 +9,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Plus, RefreshCw, AlertTriangle, Calendar, Check, X, Image, Paperclip, Edit2 } from 'lucide-react'
+import { toSafeExternalUrl } from '../../../lib/security/safeUrl'
 
 export function DailyUpdatesTab() {
   const queryClient = useQueryClient()
@@ -345,11 +346,14 @@ export function DailyUpdatesTab() {
 
                 {update.photo_urls && update.photo_urls.length > 0 && (
                   <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 'var(--space-2) 0' }}>
-                    {update.photo_urls.map((url, idx) => (
-                      <a key={idx} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', textDecoration: 'none', background: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-1) var(--space-2)', color: 'var(--color-primary)', fontSize: '0.8rem' }}>
-                        <Image size={13} /> Evidence {idx + 1}
-                      </a>
-                    ))}
+                    {update.photo_urls.map((url, idx) => {
+                      const safeUrl = toSafeExternalUrl(url)
+                      return safeUrl ? (
+                        <a key={idx} href={safeUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', textDecoration: 'none', background: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-1) var(--space-2)', color: 'var(--color-primary)', fontSize: '0.8rem' }}>
+                          <Image size={13} /> Evidence {idx + 1}
+                        </a>
+                      ) : null
+                    })}
                   </div>
                 )}
 

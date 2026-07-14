@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toSafeHttpUrl } from './safeUrl'
+import { toSafeExternalUrl, toSafeHttpUrl } from './safeUrl'
 
 describe('toSafeHttpUrl', () => {
   const allowedOrigins = ['https://example.supabase.co']
@@ -33,5 +33,24 @@ describe('toSafeHttpUrl', () => {
         allowedOrigins: ['http://127.0.0.1:54321'],
       }),
     ).toBe('http://127.0.0.1:54321/storage/v1/object/sign/file')
+  })
+})
+
+describe('toSafeExternalUrl', () => {
+  it.each([
+    ['https://drive.example/evidence/123', 'https://drive.example/evidence/123'],
+    ['http://localhost:5173/evidence/123', 'http://localhost:5173/evidence/123'],
+  ])('accepts safe evidence URL %s', (candidate, expected) => {
+    expect(toSafeExternalUrl(candidate)).toBe(expected)
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'file:///etc/passwd',
+    'https://user:password@example.com/evidence',
+    '//example.com/evidence',
+  ])('rejects unsafe external URL %s', (candidate) => {
+    expect(toSafeExternalUrl(candidate)).toBeNull()
   })
 })
