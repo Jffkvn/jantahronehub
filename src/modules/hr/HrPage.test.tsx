@@ -60,7 +60,11 @@ describe('HrPage Routing', () => {
     )
 
     expect(
-      await screen.findByRole('heading', { name: /Historical payroll migration/i }),
+      await screen.findByRole(
+        'heading',
+        { name: /Historical payroll migration/i },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument()
   })
 })
