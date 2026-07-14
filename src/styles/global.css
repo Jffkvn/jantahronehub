@@ -845,6 +845,7 @@ textarea {
 .oh-section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
 .oh-section-header h2, .oh-section-header h3 { margin: 0; color: var(--color-navy-900); font-size: 1.05rem; letter-spacing: -0.01em; }
 .oh-section-header p { margin: var(--space-1) 0 0; color: var(--color-text-muted); font-size: 0.85rem; }
+.oh-section-header + * { margin-top: var(--space-5); }
 .oh-kpi-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-surface); }
 .oh-kpi { min-width: 0; padding: var(--space-5); }
 .oh-kpi + .oh-kpi { border-left: 1px solid var(--color-border); }
@@ -852,6 +853,7 @@ textarea {
 .oh-kpi__value { display: block; margin-top: var(--space-2); color: var(--color-navy-900); font-size: 1.35rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
 .oh-kpi__value--success { color: var(--color-success); }
 .oh-kpi__value--warning { color: var(--color-warning); }
+.oh-kpi__value--danger { color: var(--color-danger); }
 .oh-operational-split { display: grid; min-width: 0; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); align-items: start; gap: var(--space-6); }
 .payroll-run-header { margin-top: var(--space-4); }
 .payroll-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-surface); }

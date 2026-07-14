@@ -8,6 +8,7 @@ import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { BackLink } from '../../../components/ui/BackLink'
 import { ArrowLeft, AlertTriangle, Check, X, FileText, Image, Landmark } from 'lucide-react'
 
 export function AdvanceDetailPage() {
@@ -309,28 +310,21 @@ export function AdvanceDetailPage() {
   }
 
   return (
-    <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+    <section className="oh-workspace-page">
       {/* Detail Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-          <Link to="/cash/advances">
-            <Button variant="secondary" style={{ padding: 'var(--space-2)' }}>
-              <ArrowLeft size={16} />
-            </Button>
-          </Link>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Advance Accountability Workspace</h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-              Ref: <code style={{ fontSize: '0.85rem' }}>{request.id.slice(0, 8)}</code> • Requested by {request.profiles_user?.display_name}
-            </p>
-          </div>
+      <BackLink to="/cash/advances">Cash advances</BackLink>
+      <header className="oh-page-header">
+        <div>
+          <p>Project cash accountability</p>
+          <h1>Advance accountability</h1>
+          <span>
+            Ref: <code>{request.id.slice(0, 8)}</code> · Requested by {request.profiles_user?.display_name}
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <StatusBadge tone={getStatusTone(request.status)}>
-            {request.status.toUpperCase().replace('_', ' ')}
-          </StatusBadge>
-        </div>
-      </div>
+        <StatusBadge tone={getStatusTone(request.status)}>
+          {request.status.toUpperCase().replace('_', ' ')}
+        </StatusBadge>
+      </header>
 
       {actionError && (
         <div style={{ padding: 'var(--space-3)', background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -341,44 +335,21 @@ export function AdvanceDetailPage() {
 
       {/* Main Reconciliation Box */}
       {isDisbursed && (
-        <div className="oh-card" style={{ padding: 'var(--space-4)', borderLeft: '4px solid var(--color-primary-light)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 var(--space-4) 0' }}>Cash Advance Reconciliation Invariant</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>DISBURSED FUNDS (+)</span>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '4px' }}>
-                {Number(request.amount_disbursed || 0).toLocaleString()} UGX
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>ACCEPTED EXPENSES (-)</span>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '4px', color: 'var(--color-danger)' }}>
-                {acceptedExpensesTotal.toLocaleString()} UGX
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>CASH RETURNED (-)</span>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '4px', color: 'var(--color-warning)' }}>
-                {returnedCashTotal.toLocaleString()} UGX
-              </div>
-            </div>
-            <div style={{ background: 'var(--color-background-subtle)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>OUTSTANDING BALANCE (=)</span>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '4px', color: outstandingBalance > 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                {outstandingBalance.toLocaleString()} UGX
-              </div>
-            </div>
-          </div>
-        </div>
+        <section className="oh-kpi-band" aria-label="Cash reconciliation">
+          <article className="oh-kpi"><span className="oh-kpi__label">Disbursed funds (+)</span><strong className="oh-kpi__value">{Number(request.amount_disbursed || 0).toLocaleString()} UGX</strong></article>
+          <article className="oh-kpi"><span className="oh-kpi__label">Accepted expenses (-)</span><strong className="oh-kpi__value">{acceptedExpensesTotal.toLocaleString()} UGX</strong></article>
+          <article className="oh-kpi"><span className="oh-kpi__label">Cash returned (-)</span><strong className="oh-kpi__value oh-kpi__value--warning">{returnedCashTotal.toLocaleString()} UGX</strong></article>
+          <article className="oh-kpi"><span className="oh-kpi__label">Outstanding balance (=)</span><strong className={`oh-kpi__value ${outstandingBalance > 0 ? 'oh-kpi__value--danger' : 'oh-kpi__value--success'}`}>{outstandingBalance.toLocaleString()} UGX</strong></article>
+        </section>
       )}
 
       {/* Main details splits */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 'var(--space-6)', alignItems: 'start' }}>
-        <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+      <div className="oh-operational-split">
+        <div className="oh-form-stack">
           {/* General info details */}
-          <div className="oh-card" style={{ padding: 'var(--space-5)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 var(--space-4) 0' }}>Request Profile</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+          <section className="oh-section-surface">
+            <div className="oh-section-header"><div><h2>Request profile</h2><p>Original request and approval context.</p></div></div>
+            <div className="oh-dossier-grid">
               <div>
                 <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Project</span>
                 <p style={{ fontWeight: 600, margin: '4px 0 0 0' }}>{request.projects?.name}</p>
@@ -399,13 +370,13 @@ export function AdvanceDetailPage() {
                 <span style={{ fontSize: '0.85rem' }}>{request.override_reason}</span>
               </div>
             )}
-          </div>
+          </section>
 
           {/* Expenses section (only active if disbursed or completed) */}
           {(isDisbursed || isCompleted) && (
-            <div className="oh-card" style={{ padding: 'var(--space-5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Expense Ledger</h3>
+            <section className="oh-section-surface">
+              <div className="oh-section-header">
+                <div><h2>Expense ledger</h2><p>Submitted expenditure and receipt review.</p></div>
                 {isDisbursed && isOwner && (
                   <Button onClick={() => setExpenseModalOpen(true)} style={{ padding: 'var(--space-1) var(--space-2)', fontSize: '0.85rem' }}>
                     Log Expense
@@ -508,14 +479,14 @@ export function AdvanceDetailPage() {
                   </table>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           {/* Cash Returns section (only active if disbursed or completed) */}
           {(isDisbursed || isCompleted) && (
-            <div className="oh-card" style={{ padding: 'var(--space-5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Returned Cash Ledger</h3>
+            <section className="oh-section-surface">
+              <div className="oh-section-header">
+                <div><h2>Returned cash ledger</h2><p>Cash returned against this advance.</p></div>
                 {isDisbursed && isCfo && (
                   <Button onClick={() => setReturnModalOpen(true)} style={{ padding: 'var(--space-1) var(--space-2)', fontSize: '0.85rem' }}>
                     Record Return
@@ -561,14 +532,14 @@ export function AdvanceDetailPage() {
                   </table>
                 </div>
               )}
-            </div>
+            </section>
           )}
         </div>
 
         {/* CFO Workflow controls Panel */}
-        <div className="oh-form-stack" style={{ gap: 'var(--space-4)' }}>
-          <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 var(--space-3) 0' }}>Workflow Actions</h3>
+        <aside className="oh-form-stack">
+          <section className="oh-section-surface">
+            <div className="oh-section-header"><div><h2>Workflow actions</h2><p>Available controls for the current state.</p></div></div>
 
             {/* CFO controls */}
             {isCfo ? (
@@ -622,11 +593,11 @@ export function AdvanceDetailPage() {
                 <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Status: <strong>{request.status.replace('_', ' ')}</strong></span>
               </div>
             )}
-          </div>
+          </section>
 
           {/* Log metrics panel */}
-          <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 var(--space-3) 0' }}>Timeline Log</h3>
+          <section className="oh-section-surface">
+            <div className="oh-section-header"><div><h2>Timeline log</h2><p>Recorded actors and workflow timestamps.</p></div></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', fontSize: '0.85rem' }}>
               <div>
                 <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Entered By</span>
@@ -666,8 +637,8 @@ export function AdvanceDetailPage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </section>
+        </aside>
       </div>
 
       {/* CFO Approval Modal (Warning/Override handler) */}
@@ -929,6 +900,6 @@ export function AdvanceDetailPage() {
           </div>
         </form>
       </Modal>
-    </div>
+    </section>
   )
 }
