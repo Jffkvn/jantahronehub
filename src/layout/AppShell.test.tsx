@@ -82,6 +82,38 @@ describe('AppShell', () => {
     expect(screen.queryByRole('link', { name: /system administration/i })).not.toBeInTheDocument()
   })
 
+  it('lets HR open System Administration when effective access includes it', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <Routes>
+        <Route
+          element={
+            <AppShell
+              currentUser={{
+                name: 'Dora HR',
+                email: 'dora@egyprouganda.com',
+                role: 'hr_admin',
+              }}
+              enabledModules={['home', 'admin']}
+              accessibleModules={['home', 'admin']}
+            />
+          }
+        >
+          <Route index element={<p>Dashboard content</p>} />
+          <Route path="admin" element={<p>User administration workspace</p>} />
+        </Route>
+      </Routes>,
+    )
+
+    const adminLinks = screen.getAllByRole('link', {
+      name: /system administration/i,
+    })
+    expect(adminLinks).not.toHaveLength(0)
+
+    await user.click(adminLinks[0])
+    expect(screen.getByText('User administration workspace')).toBeInTheDocument()
+  })
+
   it('shows the product, provider, current role, and routed content', () => {
     renderShell('hr_admin', ['home', 'my_workspace', 'hr'])
 

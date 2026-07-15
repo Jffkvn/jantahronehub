@@ -160,7 +160,7 @@ export const oneHubModules: readonly OneHubModule[] = [
     path: '/admin',
     section: 'Governance',
     icon: Settings,
-    roles: ['super_admin'],
+    roles: ['super_admin', 'hr_admin'],
   },
 ] as const
 

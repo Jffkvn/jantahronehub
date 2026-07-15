@@ -7,6 +7,7 @@ import { useAuth } from '../modules/auth/AuthProvider'
 import { InvitePage } from '../modules/auth/InvitePage'
 import { LoginPage } from '../modules/auth/LoginPage'
 import { RequireAuth } from '../modules/auth/RequireAuth'
+import { RequirePermission } from '../modules/auth/RequirePermission'
 import { TotpChallengePage } from '../modules/auth/TotpChallengePage'
 import { TotpEnrollmentPage } from '../modules/auth/TotpEnrollmentPage'
 
@@ -67,7 +68,11 @@ function ProtectedShell() {
   const primaryRole =
     rolePriority.find((role) => access.roleKeys.includes(role)) ?? 'employee'
   const accessibleModules = oneHubModules
-    .filter((module) => access.roleKeys.some((role) => module.roles.includes(role)))
+    .filter(
+      (module) =>
+        access.roleKeys.some((role) => module.roles.includes(role)) &&
+        (module.key !== 'admin' || access.permissionKeys.includes('users.read')),
+    )
     .map((module) => module.key)
 
   return (
@@ -122,7 +127,9 @@ export function AppRouter() {
             <Route path="/cash/*" element={<CashPage />} />
             <Route path="/tracker/*" element={<TrackerPage />} />
             <Route path="/reports/*" element={<ReportsPage />} />
-            <Route path="/admin/*" element={<AdminPage />} />
+            <Route element={<RequirePermission permission="users.read" />}>
+              <Route path="/admin/*" element={<AdminPage />} />
+            </Route>
           </Route>
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
