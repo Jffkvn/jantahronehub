@@ -1,4 +1,4 @@
-import { Banknote, History, Users } from 'lucide-react'
+import { Banknote, History, Settings2, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -32,6 +32,13 @@ const items: NavigationItem[] = [
     permission: 'payroll.migrate_history',
     icon: <History size={17} aria-hidden="true" />,
     active: (pathname) => pathname === '/hr/payroll/history-migration',
+  },
+  {
+    label: 'Setup',
+    to: '/hr/setup',
+    permission: 'employees.manage_setup',
+    icon: <Settings2 size={17} aria-hidden="true" />,
+    active: (pathname) => pathname === '/hr/setup',
   },
 ]
 

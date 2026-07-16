@@ -67,6 +67,19 @@ For every result, record:
 
 Module visibility below assumes all Egypro modules are enabled. A disabled module must remain hidden for every role.
 
+## HR Setup and employee assignments
+
+| ID | Actor | Expected result | Result | Evidence / notes |
+| --- | --- | --- | --- | --- |
+| HRS-01 | `hr_admin` or `super_admin` | HR Management → Setup is visible and Departments, Job Titles and Pay Grades load. | AUTOMATED PASS | `e2e/hr-setup.spec.ts`; `supabase/tests/hr_setup.sql` |
+| HRS-02 | `hr_admin` or `super_admin` | A newly created active setup record becomes available in the employee form without hard-coded application data. | AUTOMATED PASS | `e2e/hr-setup.spec.ts` |
+| HRS-03 | Any other role | Setup navigation is absent and setup mutations are rejected. | AUTOMATED PASS | `e2e/hr-setup.spec.ts`; `supabase/tests/hr_setup.sql` |
+| HRS-04 | `hr_admin` or `super_admin` | A department-specific job title is available only when its department is selected; company-wide titles remain available. | AUTOMATED PASS | `EmployeeForm.test.tsx`; `employee_setup_assignments.sql` |
+| HRS-05 | `hr_admin` or `super_admin` | Archived departments and pay grades cannot be assigned; historical relationships remain preserved. | AUTOMATED PASS | `employee_setup_assignments.sql` |
+| HRS-06 | `hr_admin` or `super_admin` | Operational Excel import maps active pay grades by code/name and reports unknown or incompatible setup values before commit. | AUTOMATED PASS | `employeeParser.test.ts` |
+
+`e2e/hr-setup.spec.ts` is a deterministic preview-mode browser journey. It proves rendered navigation, interaction and assignment behavior without claiming a live authenticated hosted-database session. The SQL suites independently prove server-side permissions and assignment integrity; signed-in hosted acceptance remains a manual role journey.
+
 ### Super administrator
 
 Expected navigation: Home, My Workspace, HR Management, Inventory Operations, Project Cash, Daily Tracker, Reports & Audits, and System Administration.
@@ -164,3 +177,15 @@ After role testing, verify that:
 | ID | Dependency | Expected result | Status | Evidence / notes |
 | --- | --- | --- | --- | --- |
 | MAIL-01 | Verified sending domain and configured Resend/Supabase SMTP | Invitation email arrives, link opens the intended OneHub origin, and first-login setup succeeds. | PENDING DOMAIN |  |
+
+## Deferred final production-readiness checks
+
+These items were deliberately deferred during role-by-role manual testing so that
+testing can continue without repeatedly running the complete release review. They
+remain release blockers and must be resolved and verified before production
+cutover.
+
+| ID | Observed behaviour and impact | Required production behaviour | Status | Final verification evidence |
+| --- | --- | --- | --- | --- |
+| UX-01 | Returning to the OneHub browser tab can trigger a routine Supabase authentication event. `AuthProvider` currently treats every event with a session as a fresh access load, `RequireAuth` temporarily unmounts the protected workspace, and unfinished form values can be lost. | Distinguish `INITIAL_SESSION`, `SIGNED_IN`, `SIGNED_OUT`, `TOKEN_REFRESHED`, and security-changing events. A same-user token/session refresh must update silently without unmounting the current route or dirty form. Add focused regression coverage proving entered employee-form data survives the event. | DEFERRED — REQUIRED BEFORE PRODUCTION |  |
+| UX-02 | A user can accidentally close a long form, navigate to another OneHub route, refresh the page, or sign out while changes are unsaved. | Track dirty state and request confirmation before destructive modal close, in-app navigation, browser refresh/close, or sign-out. Merely switching browser tabs must not warn or discard work. Use secure database-backed drafts only for long or financially important workflows; do not place sensitive HR fields in ordinary browser storage. | DEFERRED — REQUIRED BEFORE PRODUCTION |  |

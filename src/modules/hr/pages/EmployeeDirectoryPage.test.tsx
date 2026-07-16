@@ -23,7 +23,7 @@ function createApi(): EmployeeApi {
   return {
     list: vi.fn().mockResolvedValue([employee]),
     get: vi.fn().mockResolvedValue(employee),
-    setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [] }),
+    setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [], payGrades: [] }),
     create: vi.fn().mockResolvedValue(employee),
     update: vi.fn().mockResolvedValue(employee),
     archive: vi.fn().mockResolvedValue(undefined),

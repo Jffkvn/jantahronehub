@@ -18,6 +18,7 @@ const profile = {
   active: true,
   departmentName: 'Operations',
   jobTitleName: 'Field Technician',
+  payGradeName: 'Grade One',
   startDate: '2025-01-10',
   endDate: null,
   employmentType: 'full_time',
@@ -96,6 +97,7 @@ test('shows the employee profile without HR confidential fields', async () => {
   expect(screen.getAllByText('EGY-001').length).toBeGreaterThanOrEqual(1)
   expect(screen.getAllByText('amina@egypro.test').length).toBeGreaterThanOrEqual(1)
   expect(screen.getByText('Permanent')).toBeInTheDocument()
+  expect(screen.getByText('Grade One')).toBeInTheDocument()
   expect(screen.queryByText(/gross monthly salary/i)).not.toBeInTheDocument()
   expect(screen.queryByText(/\bTIN\b/i)).not.toBeInTheDocument()
   expect(screen.queryByText(/\bNSSF\b/i)).not.toBeInTheDocument()

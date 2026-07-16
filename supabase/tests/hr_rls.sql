@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(36);
 
 select has_table('public', 'departments', 'departments exists');
 select has_table('public', 'job_titles', 'job_titles exists');
@@ -11,6 +11,15 @@ select has_table('public', 'employees', 'employees exists');
 select has_table('public', 'employment_periods', 'employment periods exist');
 select has_table('public', 'employee_documents', 'employee documents exist');
 select has_function('public', 'employee_is_active', array['uuid'], 'employee active-state function exists');
+select has_function(
+  'public', 'get_my_pay_grade_name', array[]::text[],
+  'employee self-service pay grade uses a dedicated minimum-data function'
+);
+select function_privs_are(
+  'public', 'get_my_pay_grade_name', array[]::text[],
+  'authenticated', array['EXECUTE'],
+  'authenticated employees may call the protected pay-grade-name function'
+);
 
 insert into auth.users (id, email)
 values
@@ -36,27 +45,29 @@ from (values
 cross join lateral (select id from public.roles where key = 'employee') role;
 
 insert into public.departments (id, code, name)
-values ('21000000-0000-0000-0000-000000000001', 'OPS', 'Operations');
+values ('21000000-0000-0000-0000-000000000001', 'T8OPS', 'Task 8 Operations');
 
 insert into public.job_titles (id, code, name, department_id)
-values ('22000000-0000-0000-0000-000000000001', 'TECH', 'Technician', '21000000-0000-0000-0000-000000000001');
+values ('22000000-0000-0000-0000-000000000001', 'T8TECH', 'Task 8 Technician', '21000000-0000-0000-0000-000000000001');
 
 insert into public.pay_grades (id, code, name, currency_code)
-values ('23000000-0000-0000-0000-000000000001', 'G1', 'Grade 1', 'UGX');
+values
+  ('23000000-0000-0000-0000-000000000001', 'T8G1', 'Task 8 Grade 1', 'UGX'),
+  ('23000000-0000-0000-0000-000000000002', 'T8G2', 'Task 8 Grade 2', 'UGX');
 
 insert into public.employees (
   id, profile_id, employee_number, legal_name, company_email
 )
 values
-  ('24000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'EGY-001', 'Own Employee', 'own@example.invalid'),
-  ('24000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', 'EGY-002', 'Other Employee', 'other@example.invalid');
+  ('24000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'T8-EGY-001', 'Own Employee', 'task8-own@example.invalid'),
+  ('24000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', 'T8-EGY-002', 'Other Employee', 'task8-other@example.invalid');
 
 insert into public.employment_periods (
   id, employee_id, start_date, department_id, job_title_id, pay_grade_id, employment_type, contract_type
 )
 values
   ('25000000-0000-0000-0000-000000000001', '24000000-0000-0000-0000-000000000001', current_date - 30, '21000000-0000-0000-0000-000000000001', '22000000-0000-0000-0000-000000000001', '23000000-0000-0000-0000-000000000001', 'full_time', 'permanent'),
-  ('25000000-0000-0000-0000-000000000002', '24000000-0000-0000-0000-000000000002', current_date - 30, '21000000-0000-0000-0000-000000000001', '22000000-0000-0000-0000-000000000001', '23000000-0000-0000-0000-000000000001', 'full_time', 'permanent');
+  ('25000000-0000-0000-0000-000000000002', '24000000-0000-0000-0000-000000000002', current_date - 30, '21000000-0000-0000-0000-000000000001', '22000000-0000-0000-0000-000000000001', '23000000-0000-0000-0000-000000000002', 'full_time', 'permanent');
 
 insert into public.employee_documents (
   id, employee_id, document_type, display_name, storage_path, mime_type, size_bytes, employee_visible, uploaded_by
@@ -95,10 +106,15 @@ select set_config('request.jwt.claims', '{"sub":"20000000-0000-0000-0000-0000000
 
 select results_eq(
   $$ select employee_number from public.employees order by employee_number $$,
-  $$ values ('EGY-001'::text) $$,
+  $$ values ('T8-EGY-001'::text) $$,
   'employee sees only their own employee record'
 );
 select is((select count(*) from public.employment_periods), 1::bigint, 'employee sees only their own employment history');
+select is(
+  public.get_my_pay_grade_name(),
+  'Task 8 Grade 1',
+  'employee self-service returns only the signed-in employee pay-grade name'
+);
 select results_eq(
   $$ select display_name from public.employee_documents order by display_name $$,
   $$ values ('Visible contract'::text) $$,
@@ -121,24 +137,46 @@ select throws_ok(
 select set_config('request.jwt.claims', '{"sub":"20000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 select ok(public.has_permission('employees.archive'), 'HR receives explicit employee archive permission');
 select ok(public.has_permission('employee_documents.manage'), 'HR receives document management permission');
-select is((select count(*) from public.employees), 2::bigint, 'HR sees all employee records');
-select is((select count(*) from public.employment_periods), 2::bigint, 'HR sees all employment periods');
+select is(
+  (
+    select count(*)
+    from public.employees
+    where id in (
+      '24000000-0000-0000-0000-000000000001',
+      '24000000-0000-0000-0000-000000000002'
+    )
+  ),
+  2::bigint,
+  'HR sees both synthetic employee records'
+);
+select is(
+  (
+    select count(*)
+    from public.employment_periods
+    where id in (
+      '25000000-0000-0000-0000-000000000001',
+      '25000000-0000-0000-0000-000000000002'
+    )
+  ),
+  2::bigint,
+  'HR sees both synthetic employment periods'
+);
 select is((select count(*) from public.employee_documents), 3::bigint, 'HR sees confidential and visible documents');
 
 insert into public.employees (id, employee_number, legal_name)
-values ('24000000-0000-0000-0000-000000000003', 'EGY-003', 'Created by HR');
-select is((select legal_name from public.employees where employee_number = 'EGY-003'), 'Created by HR', 'HR can create employees');
+values ('24000000-0000-0000-0000-000000000003', 'T8-EGY-003', 'Created by HR');
+select is((select legal_name from public.employees where employee_number = 'T8-EGY-003'), 'Created by HR', 'HR can create employees');
 
-update public.employees set preferred_name = 'Updated' where employee_number = 'EGY-003';
-select is((select preferred_name from public.employees where employee_number = 'EGY-003'), 'Updated', 'HR can update employees');
+update public.employees set preferred_name = 'Updated' where employee_number = 'T8-EGY-003';
+select is((select preferred_name from public.employees where employee_number = 'T8-EGY-003'), 'Updated', 'HR can update employees');
 
 update public.employees
 set archived_at = now(), archived_by = '20000000-0000-0000-0000-000000000001', archive_reason = 'Duplicate record'
-where employee_number = 'EGY-003';
-select ok((select archived_at is not null from public.employees where employee_number = 'EGY-003'), 'HR can archive employees with a reason');
+where employee_number = 'T8-EGY-003';
+select ok((select archived_at is not null from public.employees where employee_number = 'T8-EGY-003'), 'HR can archive employees with a reason');
 
 select throws_ok(
-  $$ delete from public.employees where employee_number = 'EGY-003' $$,
+  $$ delete from public.employees where employee_number = 'T8-EGY-003' $$,
   '42501',
   'permission denied for table employees',
   'employees cannot be hard deleted through the API'
@@ -152,7 +190,7 @@ update public.employee_documents set employee_visible = true where display_name 
 select ok((select employee_visible from public.employee_documents where display_name = 'HR upload'), 'HR can change document visibility');
 
 select throws_ok(
-  $$ insert into public.employees (employee_number, legal_name, archived_at) values ('EGY-004', 'Invalid archive', now()) $$,
+  $$ insert into public.employees (employee_number, legal_name, archived_at) values ('T8-EGY-004', 'Invalid archive', now()) $$,
   '23514',
   null,
   'archiving requires actor and reason'
@@ -160,7 +198,7 @@ select throws_ok(
 
 reset role;
 select throws_ok(
-  $$ insert into public.employees (employee_number, legal_name, company_email) values ('EGY-005', 'Duplicate email', 'OWN@example.invalid') $$,
+  $$ insert into public.employees (employee_number, legal_name, company_email) values ('T8-EGY-005', 'Duplicate email', 'TASK8-OWN@example.invalid') $$,
   '23505',
   null,
   'company email is unique case-insensitively'
@@ -195,6 +233,11 @@ on conflict do nothing;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"20000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select is(
+  public.get_my_pay_grade_name(),
+  'Task 8 Grade 2',
+  'another employee receives their own pay-grade name'
+);
 select throws_ok(
   $$ update public.employees
      set archived_at = now(), archived_by = '20000000-0000-0000-0000-000000000003', archive_reason = 'Not authorized'

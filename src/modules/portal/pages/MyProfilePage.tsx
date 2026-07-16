@@ -46,6 +46,7 @@ export function MyProfilePage({ profile }: { profile: SelfServiceProfile | null 
           <DetailGrid>
             <DetailItem label="Position / Job title" value={profile.jobTitleName ?? 'Not assigned'} />
             <DetailItem label="Department" value={profile.departmentName ?? 'Not assigned'} />
+            <DetailItem label="Pay grade" value={profile.payGradeName ?? 'Not assigned'} />
             <DetailItem label="Employment type" value={formatLabel(profile.employmentType)} />
             <DetailItem label="Start date" value={formatDate(profile.startDate)} />
           </DetailGrid>

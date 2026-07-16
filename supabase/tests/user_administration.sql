@@ -346,9 +346,25 @@ select ok(
   'HR can list the sanitized connected-account directory'
 );
 
-select ok(
-  jsonb_array_length(public.admin_list_employee_candidates()) = 2,
-  'HR can list employee link candidates and their availability'
+select results_eq(
+  $$
+    select
+      candidate->>'id',
+      candidate->>'employee_number',
+      (candidate->>'available')::boolean
+    from jsonb_array_elements(public.admin_list_employee_candidates()) candidate
+    where candidate->>'id' in (
+      '91000000-0000-0000-0000-000000000101',
+      '91000000-0000-0000-0000-000000000102'
+    )
+    order by candidate->>'id'
+  $$,
+  $$
+    values
+      ('91000000-0000-0000-0000-000000000101'::text, 'ADMIN-LINK-001'::text, false),
+      ('91000000-0000-0000-0000-000000000102'::text, 'ADMIN-LINK-002'::text, true)
+  $$,
+  'HR can list the synthetic employee link candidates and their availability'
 );
 
 select ok(

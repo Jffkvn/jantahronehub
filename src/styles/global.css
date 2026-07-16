@@ -945,6 +945,16 @@ textarea {
 .oh-admin-guidance svg { flex: 0 0 auto; margin-top: 0.1rem; }
 .oh-admin-guidance strong { display: block; color: var(--color-navy-900); font-size: 0.88rem; }
 .oh-admin-guidance p { max-width: 58rem; margin: var(--space-1) 0 0; color: var(--color-text-muted); font-size: 0.84rem; line-height: 1.55; }
+.oh-setup-guidance { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4) var(--space-5); border: 1px solid rgb(14 124 90 / 0.22); border-radius: var(--radius-lg); color: var(--color-primary-700); background: linear-gradient(135deg, var(--color-primary-50), var(--color-surface)); }
+.oh-setup-guidance svg { flex: 0 0 auto; margin-top: 0.1rem; }
+.oh-setup-guidance div { display: grid; gap: var(--space-1); }
+.oh-setup-guidance strong { color: var(--color-navy-900); font-size: 0.88rem; }
+.oh-setup-guidance span { color: var(--color-text-muted); font-size: 0.82rem; line-height: 1.5; }
+.oh-setup-sections { display: flex; max-width: 100%; overflow-x: auto; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.oh-setup-form { display: grid; gap: var(--space-4); }
+.oh-setup-form > p { margin: 0; color: var(--color-text-muted); line-height: 1.55; }
+.oh-setup-archive-filter { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text-muted); font-size: 0.8rem; font-weight: 700; }
+.oh-setup-archive-filter input { width: 1rem; height: 1rem; accent-color: var(--color-primary-700); }
 .oh-admin-page .oh-section-header h2, .oh-access-audit .oh-section-header h2 { display: inline-flex; align-items: center; gap: var(--space-2); }
 .oh-admin-page .oh-section-header h2 svg, .oh-access-audit .oh-section-header h2 svg { color: var(--color-primary-700); }
 .oh-record-count { flex: 0 0 auto; color: var(--color-text-muted); font-size: 0.78rem; font-weight: 750; }

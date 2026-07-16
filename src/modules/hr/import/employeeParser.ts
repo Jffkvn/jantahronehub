@@ -5,13 +5,17 @@ export type RawEmployeeRow = Record<string, unknown> & { rowNumber: number }
 export interface ExistingEmployeeIdentity { id: string; employeeNumber: string; legalName: string; companyEmail: string | null; nationalId?: string | null }
 export interface ImportError { rowNumber: number; field: string; message: string }
 export interface ValidatedImportRow { rowNumber: number; action: 'create' | 'update'; employeeId?: string; values: EmployeeFormValues }
-export interface ImportSetup { departments: Array<{ id: string; name: string }>; jobTitles: Array<{ id: string; name: string }> }
+export interface ImportSetup {
+  departments: Array<{ id: string; name: string }>
+  jobTitles: Array<{ id: string; name: string; departmentId?: string | null }>
+  payGrades: Array<{ id: string; code?: string; name: string }>
+}
 
 const text = (value: unknown) => value == null ? '' : String(value).trim()
 function normalized(row: RawEmployeeRow): EmployeeFormValues {
   return {
     fullName: text(row.full_name), nationalId: text(row.national_id), companyEmail: text(row.company_email), personalEmail: text(row.personal_email), phone: text(row.phone),
-    gender: text(row.gender).toLowerCase() as EmployeeFormValues['gender'], dateOfBirth: text(row.date_of_birth), departmentId: text(row.department_id), jobTitleId: text(row.job_title_id),
+    gender: text(row.gender).toLowerCase() as EmployeeFormValues['gender'], dateOfBirth: text(row.date_of_birth), departmentId: text(row.department_id), jobTitleId: text(row.job_title_id), payGradeId: text(row.pay_grade_id),
     employmentType: (text(row.employment_type) || 'full_time') as EmployeeFormValues['employmentType'], startDate: text(row.start_date), contractType: (text(row.contract_type) || 'permanent') as EmployeeFormValues['contractType'],
     contractEndDate: text(row.contract_end_date), probationEndDate: text(row.probation_end_date), probationStatus: (text(row.probation_status) || 'not_applicable') as EmployeeFormValues['probationStatus'],
     grossSalary: text(row.gross_salary), currency: 'UGX', customOvertimeRate: text(row.custom_overtime_rate), paymentMethod: text(row.payment_method) as EmployeeFormValues['paymentMethod'], mobileMoneyNumber: text(row.mobile_money_number), bankName: text(row.bank_name), accountNumber: text(row.account_number), sortCode: text(row.sort_code),
@@ -22,9 +26,21 @@ function normalized(row: RawEmployeeRow): EmployeeFormValues {
 export function validateEmployeeRows(rows: RawEmployeeRow[], existing: ExistingEmployeeIdentity[], setup?: ImportSetup) {
   const errors: ImportError[] = []; const validRows: ValidatedImportRow[] = []; const seenNumbers = new Set<string>(); const seenEmails = new Set<string>(); const seenNins = new Set<string>()
   for (const row of rows) {
-    const values = normalized(row); const departmentName = text(row.department); const jobTitleName = text(row.job_title)
+    const values = normalized(row); const departmentName = text(row.department); const jobTitleName = text(row.job_title); const payGradeReference = text(row.pay_grade)
     if (departmentName) { const match = setup?.departments.find((item) => item.name.toLowerCase() === departmentName.toLowerCase()); if (!match) errors.push({ rowNumber: row.rowNumber, field: 'department', message: 'Department does not exist in OneHub.' }); else values.departmentId = match.id }
-    if (jobTitleName) { const match = setup?.jobTitles.find((item) => item.name.toLowerCase() === jobTitleName.toLowerCase()); if (!match) errors.push({ rowNumber: row.rowNumber, field: 'job_title', message: 'Job title does not exist in OneHub.' }); else values.jobTitleId = match.id }
+    if (jobTitleName) {
+      const titleCandidates = setup?.jobTitles.filter((item) => item.name.toLowerCase() === jobTitleName.toLowerCase()) ?? []
+      const match = titleCandidates.find((item) => item.departmentId === values.departmentId)
+        ?? titleCandidates.find((item) => !item.departmentId)
+      if (!match) errors.push({ rowNumber: row.rowNumber, field: 'job_title', message: titleCandidates.length ? 'Job title is not available for the selected department.' : 'Job title does not exist in OneHub.' })
+      else values.jobTitleId = match.id
+    }
+    if (payGradeReference) {
+      const normalizedReference = payGradeReference.toLowerCase()
+      const match = setup?.payGrades.find((item) => item.code?.toLowerCase() === normalizedReference || item.name.toLowerCase() === normalizedReference)
+      if (!match) errors.push({ rowNumber: row.rowNumber, field: 'pay_grade', message: 'Pay grade does not exist in OneHub.' })
+      else values.payGradeId = match.id
+    }
     const numberKey = values.employeeNumber.toUpperCase(); const emailKey = values.companyEmail.toLowerCase(); const ninKey = values.nationalId.toUpperCase()
     for (const [field, key, seen] of [['employee_number', numberKey, seenNumbers], ['company_email', emailKey, seenEmails], ['national_id', ninKey, seenNins]] as const) {
       if (!key) continue; if (seen.has(key)) errors.push({ rowNumber: row.rowNumber, field, message: `Duplicate ${field.replaceAll('_', ' ')} in this workbook.` }); else seen.add(key)

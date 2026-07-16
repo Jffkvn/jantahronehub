@@ -16,6 +16,7 @@ describe('HrNavigation', () => {
     expect(screen.getByRole('link', { name: 'Payroll' })).toHaveAttribute('aria-current', 'page')
     expect(screen.queryByRole('link', { name: 'Employees' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Historical migration' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Setup' })).not.toBeInTheDocument()
   })
 
   it('provides stable employee, payroll and migration destinations when permitted', () => {
@@ -34,6 +35,23 @@ describe('HrNavigation', () => {
     expect(screen.getByRole('link', { name: 'Historical migration' })).toHaveAttribute(
       'href',
       '/hr/payroll/history-migration',
+    )
+  })
+
+  it('shows HR Setup only to users who can manage canonical setup records', () => {
+    render(
+      <MemoryRouter initialEntries={['/hr/setup']}>
+        <HrNavigation permissions={['employees.read', 'employees.manage_setup']} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Setup' })).toHaveAttribute(
+      'href',
+      '/hr/setup',
+    )
+    expect(screen.getByRole('link', { name: 'Setup' })).toHaveAttribute(
+      'aria-current',
+      'page',
     )
   })
 })

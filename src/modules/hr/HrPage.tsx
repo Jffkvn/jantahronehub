@@ -17,6 +17,12 @@ const HistoricalPayrollMigrationPage = lazy(() =>
   }))
 )
 
+const HrSetupPage = lazy(() =>
+  import('./pages/HrSetupPage').then((module) => ({
+    default: module.HrSetupPage,
+  }))
+)
+
 function EmployeeDossierRoute() {
   const { employeeId } = useParams()
   return employeeId ? <EmployeeDossierPage employeeId={employeeId} /> : <Navigate to="/hr/employees" replace />
@@ -46,6 +52,16 @@ export default function HrPage() {
             element={
               <Suspense fallback={<div role="status">Loading...</div>}>
                 <HistoricalPayrollMigrationPage />
+              </Suspense>
+            }
+          />
+        </Route>
+        <Route element={<RequirePermission permission="employees.manage_setup" />}>
+          <Route
+            path="setup"
+            element={
+              <Suspense fallback={<div role="status">Loading HR setup…</div>}>
+                <HrSetupPage />
               </Suspense>
             }
           />

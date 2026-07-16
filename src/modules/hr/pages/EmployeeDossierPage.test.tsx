@@ -15,6 +15,8 @@ const employee = {
   active: true,
   departmentName: 'Operations',
   jobTitleName: 'Technician',
+  payGradeId: 'grade-1',
+  payGradeName: 'Grade One',
   startDate: '2025-01-10',
   endDate: null,
 } as const
@@ -23,13 +25,20 @@ function createApi(): EmployeeApi {
   return {
     list: vi.fn().mockResolvedValue([employee]),
     get: vi.fn().mockResolvedValue(employee),
-    setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [] }),
+    setup: vi.fn().mockResolvedValue({ departments: [], jobTitles: [], payGrades: [] }),
     create: vi.fn().mockResolvedValue(employee),
     update: vi.fn().mockResolvedValue(employee),
     archive: vi.fn().mockResolvedValue(undefined),
     offboard: vi.fn().mockResolvedValue(undefined),
   }
 }
+
+test('shows the employee pay grade in the current employment record', async () => {
+  renderWithProviders(<EmployeeDossierPage employeeId="employee-1" api={createApi()} />)
+
+  expect(await screen.findByText('Pay grade')).toBeInTheDocument()
+  expect(screen.getByText('Grade One')).toBeInTheDocument()
+})
 
 test('records an employee exit with its accountability details', async () => {
   const user = userEvent.setup()

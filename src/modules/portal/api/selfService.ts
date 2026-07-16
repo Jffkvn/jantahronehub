@@ -17,6 +17,7 @@ export interface SelfServiceProfile {
   active: boolean
   departmentName: string | null
   jobTitleName: string | null
+  payGradeName: string | null
   startDate: string | null
   endDate: string | null
   employmentType: EmploymentType | null
@@ -85,7 +86,7 @@ function currentPeriod(periods: PeriodRow[] = []) {
   return sorted.find((period) => !period.end_date || period.end_date >= today) ?? sorted[0]
 }
 
-function mapProfile(row: EmployeeRow): SelfServiceProfile {
+function mapProfile(row: EmployeeRow, payGradeName: string | null): SelfServiceProfile {
   const period = currentPeriod(row.employment_periods)
   const today = new Date().toISOString().slice(0, 10)
 
@@ -99,6 +100,7 @@ function mapProfile(row: EmployeeRow): SelfServiceProfile {
     active: !row.archived_at && Boolean(period && (!period.end_date || period.end_date >= today)),
     departmentName: period?.departments?.name ?? null,
     jobTitleName: period?.job_titles?.name ?? null,
+    payGradeName,
     startDate: period?.start_date ?? null,
     endDate: period?.end_date ?? null,
     employmentType: period?.employment_type ?? null,
@@ -130,7 +132,8 @@ async function getProfile() {
   const userId = await currentUserId()
   if (!userId) return null
 
-  const { data, error } = await getSupabaseClient()
+  const client = getSupabaseClient()
+  const { data, error } = await client
     .from('employees')
     .select(profileSelection)
     .eq('profile_id', userId)
@@ -138,7 +141,17 @@ async function getProfile() {
     .maybeSingle()
 
   if (error) throw error
-  return data ? mapProfile(data as unknown as EmployeeRow) : null
+  if (!data) return null
+
+  const { data: payGradeName, error: payGradeError } = await client.rpc(
+    'get_my_pay_grade_name',
+  )
+  if (payGradeError) throw payGradeError
+
+  return mapProfile(
+    data as unknown as EmployeeRow,
+    typeof payGradeName === 'string' ? payGradeName : null,
+  )
 }
 
 async function listDocuments() {

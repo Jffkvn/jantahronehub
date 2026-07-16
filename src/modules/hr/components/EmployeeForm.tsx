@@ -1,15 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Building2, CreditCard, Landmark, UserRound } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { employeeFormSchema, type EmployeeFormValues } from '../schemas/employee'
 
-export interface EmployeeSetupOption { id: string; name: string; departmentId?: string | null }
+export interface EmployeeSetupOption { id: string; name: string; code?: string; departmentId?: string | null }
 const defaults: EmployeeFormValues = {
   fullName: '', nationalId: '', companyEmail: '', personalEmail: '', phone: '', gender: '', dateOfBirth: '',
-  departmentId: '', jobTitleId: '', employmentType: 'full_time', startDate: '', contractType: 'permanent', contractEndDate: '', probationEndDate: '', probationStatus: 'not_applicable',
+  departmentId: '', jobTitleId: '', payGradeId: '', employmentType: 'full_time', startDate: '', contractType: 'permanent', contractEndDate: '', probationEndDate: '', probationStatus: 'not_applicable',
   grossSalary: '', currency: 'UGX', customOvertimeRate: '', paymentMethod: 'cash', mobileMoneyNumber: '', bankName: '', accountNumber: '', sortCode: '',
   employeeNumber: '', tinNumber: '', nssfNumber: '', employeeTaxType: 'local', pctMonthWorked: '100', whtRate: '6',
 }
@@ -18,13 +19,28 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
   return <fieldset className="oh-form-section"><legend>{icon}<span>{title}</span></legend><div className="oh-form-grid">{children}</div></fieldset>
 }
 
-export function EmployeeForm({ initialValues, onSubmit, submitting = false, departments = [], jobTitles = [] }: {
+export function EmployeeForm({ initialValues, onSubmit, submitting = false, departments = [], jobTitles = [], payGrades = [] }: {
   initialValues?: Partial<EmployeeFormValues>; onSubmit: (values: EmployeeFormValues) => Promise<void>; submitting?: boolean;
-  departments?: EmployeeSetupOption[]; jobTitles?: EmployeeSetupOption[]
+  departments?: EmployeeSetupOption[]; jobTitles?: EmployeeSetupOption[]; payGrades?: EmployeeSetupOption[]
 }) {
-  const { register, handleSubmit, control, formState: { errors } } = useForm<EmployeeFormValues>({ resolver: zodResolver(employeeFormSchema), defaultValues: { ...defaults, ...initialValues } })
+  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<EmployeeFormValues>({ resolver: zodResolver(employeeFormSchema), defaultValues: { ...defaults, ...initialValues } })
   const taxType = useWatch({ control, name: 'employeeTaxType' })
   const paymentMethod = useWatch({ control, name: 'paymentMethod' })
+  const departmentId = useWatch({ control, name: 'departmentId' })
+  const jobTitleId = useWatch({ control, name: 'jobTitleId' })
+  const availableJobTitles = useMemo(
+    () => jobTitles.filter((title) => !title.departmentId || title.departmentId === departmentId),
+    [departmentId, jobTitles],
+  )
+
+  useEffect(() => {
+    if (!jobTitleId) return
+    const selectedTitle = jobTitles.find((title) => title.id === jobTitleId)
+    if (!selectedTitle || (selectedTitle.departmentId && selectedTitle.departmentId !== departmentId)) {
+      setValue('jobTitleId', '', { shouldDirty: true, shouldValidate: true })
+    }
+  }, [departmentId, jobTitleId, jobTitles, setValue])
+
   return <form className="oh-employee-form" onSubmit={handleSubmit(onSubmit)}>
     <Section icon={<UserRound size={17} />} title="Personal information">
       <Input label="Full name" required error={errors.fullName?.message} {...register('fullName')} />
@@ -36,8 +52,9 @@ export function EmployeeForm({ initialValues, onSubmit, submitting = false, depa
       <Input label="Date of birth" type="date" error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
     </Section>
     <Section icon={<Building2 size={17} />} title="Employment details">
-      <label className="oh-field"><span className="oh-field__label">Position / Job title</span><select className="oh-input" {...register('jobTitleId')}><option value="">Not assigned</option>{jobTitles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="oh-field"><span className="oh-field__label">Position / Job title</span><select className="oh-input" {...register('jobTitleId')}><option value="">Not assigned</option>{availableJobTitles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="oh-field"><span className="oh-field__label">Department</span><select className="oh-input" {...register('departmentId')}><option value="">Not assigned</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="oh-field"><span className="oh-field__label">Pay grade</span><select className="oh-input" {...register('payGradeId')}><option value="">Not assigned</option>{payGrades.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="oh-field"><span className="oh-field__label">Employment type</span><select className="oh-input" {...register('employmentType')}><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="casual">Casual / Daily</option><option value="intern">Intern</option><option value="contractor">Contractor</option></select></label>
       <Input label="Start date" type="date" required error={errors.startDate?.message} {...register('startDate')} />
     </Section>

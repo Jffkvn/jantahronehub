@@ -18,6 +18,28 @@ describe('HrPage navigation helpers', () => {
 })
 
 describe('HrPage Routing', () => {
+  it('denies HR Setup when the setup-management permission is missing', async () => {
+    render(
+      <MemoryRouter initialEntries={['/hr/setup']}>
+        <AuthProvider
+          gateway={fakeGateway({
+            access: accessContext({
+              permissionKeys: ['employees.read'],
+              roleKeys: ['employee'],
+            }),
+          })}
+        >
+          <Routes>
+            <Route path="/forbidden" element={<p>Permission denied</p>} />
+            <Route path="/hr/*" element={<HrPage />} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Permission denied')).toBeInTheDocument()
+  })
+
   it('denies access to historical payroll migration if permission is missing', async () => {
     render(
       <MemoryRouter initialEntries={['/hr/payroll/history-migration']}>

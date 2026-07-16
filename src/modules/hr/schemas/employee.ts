@@ -8,7 +8,7 @@ export const employeeFormSchema = z.object({
   fullName: z.string().trim().min(2, 'Full name is required.').max(160),
   nationalId: z.string().trim().max(80), companyEmail: optionalEmail, personalEmail: optionalEmail,
   phone: z.string().trim().max(32), gender: z.enum(['', 'female', 'male', 'other', 'prefer_not_to_say']), dateOfBirth: optionalDate,
-  departmentId: z.string(), jobTitleId: z.string(), employmentType: z.enum(['full_time', 'part_time', 'casual', 'intern', 'contractor']), startDate: z.iso.date('Enter a valid start date.'),
+  departmentId: z.string(), jobTitleId: z.string(), payGradeId: z.string(), employmentType: z.enum(['full_time', 'part_time', 'casual', 'intern', 'contractor']), startDate: z.iso.date('Enter a valid start date.'),
   contractType: z.enum(['permanent', 'fixed_term', 'casual', 'internship', 'consultancy']), contractEndDate: optionalDate,
   probationEndDate: optionalDate, probationStatus: z.enum(['not_applicable', 'on_probation', 'passed', 'extended', 'failed']),
   grossSalary: money, currency: z.enum(['UGX']), customOvertimeRate: money, paymentMethod: z.enum(['bank', 'mobile_money', 'cash']), mobileMoneyNumber: z.string().trim().max(32),
