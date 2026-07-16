@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Boxes, CalendarDays, CircleDollarSign, MapPin, UsersRound } from 'lucide-react'
+import { ArrowLeft, Boxes, CalendarDays, MapPin, UsersRound } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 
 import { StatusBadge } from '../../../components/ui/StatusBadge'
@@ -7,6 +7,7 @@ import { projectsApi } from '../api/projects'
 import { projectQueryKeys } from '../types'
 import { ProjectTeamTab } from './ProjectTeamTab'
 import { ProjectUpdatesTab } from './ProjectUpdatesTab'
+import { ProjectCashTab } from './ProjectCashTab'
 
 export type ProjectWorkspaceTab = 'summary' | 'team' | 'updates' | 'cash' | 'inventory' | 'documents' | 'history'
 
@@ -80,7 +81,7 @@ export function ProjectWorkspacePage({
           <div className="oh-project-summary-grid">
             <article className="oh-card"><CalendarDays /><span>Schedule</span><strong>{project.planned_start_date ?? 'Start pending'}</strong><small>{project.expected_end_date ? `Expected by ${project.expected_end_date}` : 'End date pending'}</small></article>
             <article className="oh-card"><UsersRound /><span>Assigned team</span><strong>{assignmentsQuery.data?.length ?? 0}</strong><small>Primary PM and coordinators</small></article>
-            <article className="oh-card"><CircleDollarSign /><span>Project cash</span><strong>Open cash ledger</strong><small>Advances and accountability attached to this project</small></article>
+            <ProjectCashTab projectId={projectId} compact />
             <article className="oh-card"><Boxes /><span>Inventory & equipment</span><strong>Open asset ledger</strong><small>Stock requests, equipment and custody attached here</small></article>
           </div>
         ) : null}
@@ -88,7 +89,8 @@ export function ProjectWorkspacePage({
           <ProjectTeamTab projectId={projectId} />
         ) : null}
         {activeTab === 'updates' ? <ProjectUpdatesTab projectId={projectId} /> : null}
-        {!['summary', 'team', 'updates'].includes(activeTab) ? (
+        {activeTab === 'cash' ? <ProjectCashTab projectId={projectId} /> : null}
+        {!['summary', 'team', 'updates', 'cash'].includes(activeTab) ? (
           <div className="oh-card"><p>This project-specific ledger is ready for its canonical workflow connection.</p></div>
         ) : null}
       </section>

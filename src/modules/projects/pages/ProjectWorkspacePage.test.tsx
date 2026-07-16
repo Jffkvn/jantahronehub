@@ -18,6 +18,9 @@ vi.mock('../api/projects', () => ({
     getAssignments: vi.fn().mockResolvedValue([]),
   },
 }))
+vi.mock('./ProjectCashTab', () => ({
+  ProjectCashTab: () => <article>Cash reconciliation</article>,
+}))
 
 describe('ProjectWorkspacePage', () => {
   it('shows stable project identity and every operational tab', async () => {
