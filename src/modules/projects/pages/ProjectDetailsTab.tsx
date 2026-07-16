@@ -35,7 +35,7 @@ export function ProjectDetailsTab() {
   // Edit Project state
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
-  const [status, setStatus] = useState<'active' | 'completed' | 'on_hold'>('active')
+  const [status, setStatus] = useState<Project['status']>('active')
   const [budget, setBudget] = useState('')
   const [budgetNotes, setBudgetNotes] = useState('')
   const [healthStatus, setHealthStatus] = useState<'on_track' | 'needs_attention' | 'at_risk'>('on_track')
@@ -503,7 +503,7 @@ export function ProjectDetailsTab() {
               <select
                 className="oh-input"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'active' | 'completed' | 'on_hold')}
+                onChange={(e) => setStatus(e.target.value as Project['status'])}
               >
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
