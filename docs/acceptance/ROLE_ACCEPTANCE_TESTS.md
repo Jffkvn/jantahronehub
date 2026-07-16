@@ -127,8 +127,9 @@ Expected navigation: Home, My Workspace, Inventory Operations, Project Cash, and
 
 | ID | Journey | Expected result | Result | Evidence / notes |
 | --- | --- | --- | --- | --- |
-| CO-01 | Submit a stock request, cash request, and daily update for an assigned project. | Requests are created within assigned-project scope. |  |  |
+| CO-01 | Submit a stock request, cash request, and daily update for an assigned project. | Requests are created within assigned-project scope. | AUTOMATED PARTIAL / HOSTED MANUAL PENDING | `projects_workflow.sql` proves assigned-project scope; `CashAdvancesPage.test.tsx` and `RequestsPage.test.tsx` prove planned/active/on-hold project consistency; signed-in submission journey remains pending. |
 | CO-02 | Attempt CFO approval, warehouse fulfillment, or `/admin`. | Unauthorized action is absent or denied. |  |  |
+| CO-03 | Receive a new project assignment and open its Team page. | One assignment notification is created and the coordinator's real display name and role are shown. | AUTOMATED PASS / HOSTED MANUAL PENDING | `projects_workflow.sql`, `notifications_policy.sql`, `projects.test.ts`, and `ProjectTeamTab.test.tsx`; live migration promotion remains pending. |
 
 ### Project manager
 
@@ -136,8 +137,9 @@ Expected navigation: Home, My Workspace, Inventory Operations, Project Cash, and
 
 | ID | Journey | Expected result | Result | Evidence / notes |
 | --- | --- | --- | --- | --- |
-| PM-01 | Review assigned project activity and submit permitted operational requests. | Assigned-project workflows succeed. |  |  |
+| PM-01 | Review assigned project activity and submit permitted operational requests. | Assigned-project workflows succeed. | AUTOMATED PARTIAL / HOSTED MANUAL PENDING | Project API/UI suites prove readable assignment names and operational project selection; signed-in end-to-end submission remains pending. |
 | PM-02 | Attempt warehouse fulfillment, CFO-only action, or `/admin`. | Unauthorized action is absent or denied. |  |  |
+| PM-03 | Assign a coordinator with a reason. | The coordinator is added once, receives one notification, and appears by name in the active team and assignment history. | AUTOMATED PASS / HOSTED MANUAL PENDING | `projects_workflow.sql`, `notifications_policy.sql`, `projects.test.ts`, and `ProjectTeamTab.test.tsx`; live migration promotion remains pending. |
 
 ### Warehouse manager
 
