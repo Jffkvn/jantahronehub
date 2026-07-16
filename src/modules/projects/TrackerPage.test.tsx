@@ -7,8 +7,6 @@ import TrackerPage from './TrackerPage'
 vi.mock('../auth/AuthProvider', () => ({
   useAuth: () => ({ access: { permissionKeys: ['daily_updates.read_all'] } }),
 }))
-vi.mock('./pages/OverviewTab', () => ({ OverviewTab: () => <div>Projects overview</div> }))
-vi.mock('./pages/ProjectDetailsTab', () => ({ ProjectDetailsTab: () => <div>Project detail</div> }))
 vi.mock('./pages/DailyUpdatesTab', () => ({ DailyUpdatesTab: () => <div>Daily updates</div> }))
 vi.mock('./pages/MissedUpdatesTab', () => ({ MissedUpdatesTab: () => <div>Missed updates</div> }))
 
@@ -17,9 +15,9 @@ function CurrentPath() {
 }
 
 describe('TrackerPage navigation', () => {
-  it('uses canonical project-workspace URLs from a tracker child route', () => {
+  it('only exposes daily tracking work, separate from project management', () => {
     render(
-      <MemoryRouter initialEntries={['/tracker/overview']}>
+      <MemoryRouter initialEntries={['/tracker/daily-updates']}>
         <Routes>
           <Route path="/tracker/*" element={<TrackerPage />} />
         </Routes>
@@ -27,7 +25,6 @@ describe('TrackerPage navigation', () => {
     )
 
     const expectedLinks = {
-      Overview: '/tracker/overview',
       'Daily Updates': '/tracker/daily-updates',
       'Missed Updates': '/tracker/missed-updates',
     }
@@ -37,9 +34,12 @@ describe('TrackerPage navigation', () => {
       expect(link).toHaveAttribute('href', href)
       expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     }
+
+    expect(screen.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Projects overview')).not.toBeInTheDocument()
   })
 
-  it('recovers an invalid tracker URL to the canonical overview once', async () => {
+  it('recovers an invalid tracker URL to daily updates once', async () => {
     render(
       <MemoryRouter initialEntries={['/tracker/not-a-page']}>
         <CurrentPath />
@@ -49,21 +49,19 @@ describe('TrackerPage navigation', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByLabelText('Current path')).toHaveTextContent('/tracker/overview')
+    expect(await screen.findByLabelText('Current path')).toHaveTextContent('/tracker/daily-updates')
   })
 
-  it('keeps Overview active while viewing a project detail', () => {
+  it('redirects the old tracker overview away from project management', async () => {
     render(
-      <MemoryRouter initialEntries={['/tracker/projects/project-1']}>
+      <MemoryRouter initialEntries={['/tracker/overview']}>
+        <CurrentPath />
         <Routes>
           <Route path="/tracker/*" element={<TrackerPage />} />
         </Routes>
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(await screen.findByLabelText('Current path')).toHaveTextContent('/tracker/daily-updates')
   })
 })

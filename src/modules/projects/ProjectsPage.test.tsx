@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
@@ -37,7 +37,9 @@ describe('ProjectsPage route tree', () => {
   ])('resolves %s', (path, heading) => {
     render(
       <MemoryRouter initialEntries={[path]}>
-        <ProjectsPage />
+        <Routes>
+          <Route path="/projects/*" element={<ProjectsPage />} />
+        </Routes>
       </MemoryRouter>,
     )
     expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()

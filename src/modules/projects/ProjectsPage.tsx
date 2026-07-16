@@ -12,15 +12,15 @@ function ProjectRoute({ tab }: { tab: ProjectWorkspaceTab }) {
 export default function ProjectsPage() {
   return (
     <Routes>
-      <Route path="/projects" element={<ProjectsListPage />} />
-      <Route path="/projects/new" element={<CreateProjectPage />} />
-      <Route path="/projects/:projectId/summary" element={<ProjectRoute tab="summary" />} />
-      <Route path="/projects/:projectId/team" element={<ProjectRoute tab="team" />} />
-      <Route path="/projects/:projectId/updates" element={<ProjectRoute tab="updates" />} />
-      <Route path="/projects/:projectId/cash" element={<ProjectRoute tab="cash" />} />
-      <Route path="/projects/:projectId/inventory" element={<ProjectRoute tab="inventory" />} />
-      <Route path="/projects/:projectId/documents" element={<ProjectRoute tab="documents" />} />
-      <Route path="/projects/:projectId/history" element={<ProjectRoute tab="history" />} />
+      <Route index element={<ProjectsListPage />} />
+      <Route path="new" element={<CreateProjectPage />} />
+      <Route path=":projectId/summary" element={<ProjectRoute tab="summary" />} />
+      <Route path=":projectId/team" element={<ProjectRoute tab="team" />} />
+      <Route path=":projectId/updates" element={<ProjectRoute tab="updates" />} />
+      <Route path=":projectId/cash" element={<ProjectRoute tab="cash" />} />
+      <Route path=":projectId/inventory" element={<ProjectRoute tab="inventory" />} />
+      <Route path=":projectId/documents" element={<ProjectRoute tab="documents" />} />
+      <Route path=":projectId/history" element={<ProjectRoute tab="history" />} />
       <Route path="*" element={<Navigate to="/projects" replace />} />
     </Routes>
   )

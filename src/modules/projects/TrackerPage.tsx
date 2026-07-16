@@ -1,10 +1,8 @@
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
-import { OverviewTab } from './pages/OverviewTab'
-import { ProjectDetailsTab } from './pages/ProjectDetailsTab'
 import { DailyUpdatesTab } from './pages/DailyUpdatesTab'
 import { MissedUpdatesTab } from './pages/MissedUpdatesTab'
 import { useAuth } from '../auth/AuthProvider'
-import { Layout, ClipboardList, AlertCircle } from 'lucide-react'
+import { ClipboardList, AlertCircle } from 'lucide-react'
 
 export default function TrackerPage() {
   const { access } = useAuth()
@@ -13,7 +11,6 @@ export default function TrackerPage() {
   const hasReadAll = permissions.includes('daily_updates.read_all')
 
   const tabs = [
-    { to: '/tracker/overview', label: 'Overview', icon: Layout },
     { to: '/tracker/daily-updates', label: 'Daily Updates', icon: ClipboardList }
   ]
 
@@ -24,12 +21,11 @@ export default function TrackerPage() {
   return (
     <section className="oh-workspace-page">
       {/* Tab Navigation header */}
-      <nav className="oh-portal-tabs" aria-label="Projects sections" style={{ marginBottom: 'var(--space-6)' }}>
+      <nav className="oh-portal-tabs" aria-label="Daily tracker sections" style={{ marginBottom: 'var(--space-6)' }}>
         {tabs.map((tab) => {
           const active =
             pathname === tab.to ||
-            pathname.startsWith(`${tab.to}/`) ||
-            (tab.to === '/tracker/overview' && pathname.startsWith('/tracker/projects/'))
+            pathname.startsWith(`${tab.to}/`)
 
           return (
             <Link
@@ -48,12 +44,10 @@ export default function TrackerPage() {
 
       {/* Routes Switch */}
       <Routes>
-        <Route index element={<Navigate to="/tracker/overview" replace />} />
-        <Route path="overview" element={<OverviewTab />} />
-        <Route path="projects/:projectId" element={<ProjectDetailsTab />} />
+        <Route index element={<Navigate to="/tracker/daily-updates" replace />} />
         <Route path="daily-updates" element={<DailyUpdatesTab />} />
         {hasReadAll && <Route path="missed-updates" element={<MissedUpdatesTab />} />}
-        <Route path="*" element={<Navigate to="/tracker/overview" replace />} />
+        <Route path="*" element={<Navigate to="/tracker/daily-updates" replace />} />
       </Routes>
     </section>
   )
