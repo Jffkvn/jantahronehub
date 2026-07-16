@@ -279,12 +279,12 @@ export const cashApi = {
     if (error) throw error
   },
 
-  getActiveProjects: async (): Promise<ProjectOption[]> => {
+  getOperationalProjects: async (): Promise<ProjectOption[]> => {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('projects')
       .select('id, name')
-      .eq('status', 'active')
+      .in('status', ['planned', 'active', 'on_hold'])
       .order('name')
 
     if (error) throw error

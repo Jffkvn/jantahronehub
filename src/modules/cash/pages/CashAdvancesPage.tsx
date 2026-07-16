@@ -32,8 +32,8 @@ export function CashAdvancesPage() {
   })
 
   const { data: projects = [] } = useQuery({
-    queryKey: ['cash-projects'],
-    queryFn: cashApi.getActiveProjects
+    queryKey: ['cash-projects', 'operational'],
+    queryFn: cashApi.getOperationalProjects
   })
 
   const { data: profiles = [] } = useQuery({
