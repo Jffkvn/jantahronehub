@@ -41,6 +41,7 @@ export interface ConsumableItem {
 export interface StockRequest {
   id: string;
   requested_by: string;
+  project_id: string | null;
   project_name: string;
   status: 'draft' | 'pending_approval' | 'approved' | 'fulfilled' | 'rejected';
   total_estimated_value: number;
@@ -101,7 +102,37 @@ export interface StockRequestInputItem {
   equipment_asset_id: string | null
   quantity: number
   estimated_unit_price: number
+  expected_return_date?: string | null
 }
+
+interface InventoryRpcResult {
+  data: unknown
+  error: unknown
+}
+
+export interface InventoryRpcClient {
+  rpc(
+    functionName: string,
+    parameters?: Record<string, unknown>,
+  ): PromiseLike<InventoryRpcResult>
+}
+
+export function createInventoryApi(
+  client: InventoryRpcClient = getSupabaseClient() as unknown as InventoryRpcClient,
+) {
+  return {
+    async requestStock(projectId: string, items: StockRequestInputItem[]): Promise<string> {
+      const { data, error } = await client.rpc('rpc_request_stock', {
+        p_project_id: projectId,
+        p_items: items,
+      })
+      if (error) throw error
+      return data as string
+    },
+  }
+}
+
+const guardedInventoryApi = createInventoryApi()
 
 export interface BulkCategory {
   name: string
@@ -228,14 +259,7 @@ export const inventoryApi = {
     return data as string;
   },
 
-  async requestStock(projectName: string, items: StockRequestInputItem[]): Promise<string> {
-    const { data, error } = await getSupabaseClient().rpc('rpc_request_stock', {
-      p_project_name: projectName,
-      p_items: items
-    })
-    if (error) throw error
-    return data as string;
-  },
+  requestStock: guardedInventoryApi.requestStock,
 
   async approveRequest(requestId: string): Promise<void> {
     const { error } = await getSupabaseClient().rpc('rpc_approve_stock_request', {

@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { inventoryApi } from '../api/inventory'
+import { projectsApi } from '../../projects/api/projects'
 import { Button } from '../../../components/ui/Button'
+import { Combobox } from '../../../components/ui/Combobox'
 import { Modal } from '../../../components/ui/Modal'
 import { Plus, Trash2, ArrowRight } from 'lucide-react'
 
@@ -13,13 +15,14 @@ export function RequestsPage() {
   
   // New request modal state
   const [creating, setCreating] = useState(false)
-  const [projectName, setProjectName] = useState('')
+  const [projectId, setProjectId] = useState<string | null>(null)
   const [itemsList, setItemsList] = useState<Array<{
     consumable_item_id: string | null
     equipment_asset_id: string | null
     quantity: number
     estimated_unit_price: number
     displayName: string
+    expected_return_date: string | null
   }>>([])
   
   // Add item form state
@@ -27,6 +30,7 @@ export function RequestsPage() {
   const [selectedItemId, setSelectedItemId] = useState('')
   const [qty, setQty] = useState(1)
   const [price, setPrice] = useState(0)
+  const [expectedReturnDate, setExpectedReturnDate] = useState('')
 
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -34,6 +38,7 @@ export function RequestsPage() {
   const requests = useQuery({ queryKey: ['requests'], queryFn: inventoryApi.listRequests })
   const consumables = useQuery({ queryKey: ['consumables'], queryFn: inventoryApi.listConsumables })
   const equipment = useQuery({ queryKey: ['equipment'], queryFn: inventoryApi.listEquipment })
+  const projects = useQuery({ queryKey: ['projects', 'inventory-request-options'], queryFn: projectsApi.getProjects })
 
   // Mutations
   const createRequest = useMutation({
@@ -42,9 +47,10 @@ export function RequestsPage() {
         consumable_item_id: item.consumable_item_id,
         equipment_asset_id: item.equipment_asset_id,
         quantity: item.quantity,
-        estimated_unit_price: item.estimated_unit_price
+        estimated_unit_price: item.estimated_unit_price,
+        expected_return_date: item.expected_return_date,
       }))
-      return inventoryApi.requestStock(projectName, itemsPayload)
+      return inventoryApi.requestStock(projectId!, itemsPayload)
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['requests'] })
@@ -57,11 +63,12 @@ export function RequestsPage() {
   })
 
   const resetForm = () => {
-    setProjectName('')
+    setProjectId(null)
     setItemsList([])
     setSelectedItemId('')
     setQty(1)
     setPrice(0)
+    setExpectedReturnDate('')
     setErrorMsg('')
   }
 
@@ -96,13 +103,15 @@ export function RequestsPage() {
         equipment_asset_id: equipmentId,
         quantity: qty,
         estimated_unit_price: price,
-        displayName
+        displayName,
+        expected_return_date: itemType === 'equipment' ? expectedReturnDate || null : null,
       }
     ])
 
     setSelectedItemId('')
     setQty(1)
     setPrice(0)
+    setExpectedReturnDate('')
   }
 
   const handleRemoveItem = (index: number) => {
@@ -233,17 +242,20 @@ export function RequestsPage() {
               {errorMsg}
             </div>
           )}
-          <div>
-            <label className="oh-label">Project / Site Name</label>
-            <input
-              type="text"
-              className="oh-input"
-              placeholder="e.g. Kampala Tower Phase 2"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              required
-            />
-          </div>
+          <Combobox
+            label="Project"
+            options={(projects.data || []).map((project) => ({
+              value: project.id,
+              label: `${project.project_code || 'Project'} · ${project.name}`,
+              description: project.site_location || undefined,
+              disabled: !['planned', 'active', 'on_hold'].includes(project.status),
+            }))}
+            value={projectId}
+            onChange={setProjectId}
+            placeholder="Search project code or name"
+            emptyMessage="No assigned operational projects found"
+            required
+          />
 
           <div style={{ border: '1px solid var(--color-border)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'var(--color-surface-muted)' }}>
             <h4 style={{ margin: '0 0 var(--space-3)', fontWeight: 700 }}>Add Requisition Items</h4>
@@ -302,6 +314,18 @@ export function RequestsPage() {
                   onChange={(e) => setPrice(Number(e.target.value))}
                 />
               </div>
+              {itemType === 'equipment' ? (
+                <div style={{ flex: 2 }}>
+                  <label className="oh-label" style={{ fontSize: '0.75rem' }} htmlFor="request-expected-return">Expected return</label>
+                  <input
+                    id="request-expected-return"
+                    type="date"
+                    className="oh-input"
+                    value={expectedReturnDate}
+                    onChange={(event) => setExpectedReturnDate(event.target.value)}
+                  />
+                </div>
+              ) : null}
               <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                 <Button variant="secondary" onClick={handleAddItem} disabled={!selectedItemId}>
                   Add
@@ -321,6 +345,7 @@ export function RequestsPage() {
                       <strong>{item.displayName}</strong>
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                         Qty: {item.quantity} · Est. Price: UGX {item.estimated_unit_price.toLocaleString()} each
+                        {item.expected_return_date ? ` · Return by ${item.expected_return_date}` : ''}
                       </div>
                     </div>
                     <Button variant="ghost" onClick={() => handleRemoveItem(index)} style={{ padding: '0.2rem', color: 'var(--color-red-600)' }}>
@@ -336,7 +361,7 @@ export function RequestsPage() {
             <Button
               onClick={() => createRequest.mutate()}
               loading={createRequest.isPending}
-              disabled={!projectName.trim() || itemsList.length === 0}
+              disabled={!projectId || itemsList.length === 0}
               style={{ flex: 1 }}
             >
               Submit Request

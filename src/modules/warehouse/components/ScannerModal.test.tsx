@@ -42,6 +42,7 @@ const warehouse = {
 const request = {
   id: 'request-1',
   requested_by: 'profile-1',
+  project_id: 'project-1',
   project_name: 'Mbarara Site',
   status: 'approved' as const,
   total_estimated_value: 2_500_000,

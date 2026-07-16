@@ -68,6 +68,25 @@ from (values
 ) assigned(profile_id, role_key)
 join public.roles role on role.key = assigned.role_key;
 
+insert into public.projects (
+  project_code, name, status, health_status, created_by, updated_by
+) values (
+  'INV-BRIDGE', 'Bridge Construction', 'active', 'on_track',
+  '60000000-0000-0000-0000-000000000003',
+  '60000000-0000-0000-0000-000000000003'
+);
+
+insert into public.project_assignments (
+  project_id, user_id, role_on_project, assigned_by, assignment_reason
+)
+select project.id,
+       '60000000-0000-0000-0000-000000000003',
+       'pm',
+       '60000000-0000-0000-0000-000000000003',
+       'Inventory workflow fixture assignment'
+from public.projects project
+where project.project_code = 'INV-BRIDGE';
+
 -- Set session context to warehouse manager
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);

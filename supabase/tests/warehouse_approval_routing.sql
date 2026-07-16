@@ -37,6 +37,37 @@ from (values
 join public.roles role on role.key = assigned.role_key
 on conflict do nothing;
 
+insert into public.projects (
+  project_code, name, status, health_status, created_by, updated_by
+)
+select fixture.project_code,
+       fixture.project_name,
+       'active',
+       'on_track',
+       '70000000-0000-0000-0000-000000000003',
+       '70000000-0000-0000-0000-000000000003'
+from (values
+  ('ROUTE-BELOW', 'Below Threshold Project'),
+  ('ROUTE-AT', 'At Threshold Project'),
+  ('ROUTE-ABOVE', 'Above Threshold Project'),
+  ('ROUTE-SENSITIVE', 'Sensitive Asset Project'),
+  ('ROUTE-CRITICAL', 'Critical Stock Project'),
+  ('ROUTE-MANUAL', 'Manual Escalation Project'),
+  ('ROUTE-MANAGER', 'Manager Mode Project'),
+  ('ROUTE-CFO', 'CFO All Project')
+) fixture(project_code, project_name);
+
+insert into public.project_assignments (
+  project_id, user_id, role_on_project, assigned_by, assignment_reason
+)
+select project.id,
+       '70000000-0000-0000-0000-000000000003',
+       'pm',
+       '70000000-0000-0000-0000-000000000003',
+       'Approval routing fixture assignment'
+from public.projects project
+where project.project_code like 'ROUTE-%';
+
 -- Set session context to superuser to create setup fixtures
 reset role;
 
