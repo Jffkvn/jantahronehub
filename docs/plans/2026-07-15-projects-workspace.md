@@ -14,7 +14,7 @@
 
 1. Work from the stabilized repository only.
 2. Do not begin implementation until the deployed HR Setup work in migrations `0064`–`0066` is committed, the populated-database fixtures pass, and `git status --short` is clean.
-3. Complete the acceptance-blocking role mismatch checkpoint before this plan. This plan reserves migration numbers `0068`–`0071` on the assumption that the role checkpoint uses `0067`. If the next available number differs, rename every migration in this plan before applying any of them; never rename an applied migration.
+3. Complete the acceptance-blocking role mismatch checkpoint before this plan. Migrations `0068` and corrective `0069` are now applied governance-report checkpoints, so this plan reserves migration numbers `0070`–`0073`. If the next available number differs, rename every migration in this plan before applying any of them; never rename an applied migration.
 4. Use the legacy Egypro applications only as read-only visual references.
 5. Run every database test against the designated OneHub test project, never an unrelated production database.
 6. Keep commits scoped to the task that just passed. Do not combine unrelated HR, Reports or Warehouse redesign work with Projects commits.
@@ -77,7 +77,7 @@ No commit is required for this task.
 **Files:**
 
 - Modify: `supabase/tests/projects_workflow.sql`
-- Create: `supabase/migrations/0068_projects_operational_foundation.sql`
+- Create: `supabase/migrations/0070_projects_operational_foundation.sql`
 
 ### Step 1: Write the failing pgTAP contract
 
@@ -118,7 +118,7 @@ Expected: FAIL because the new permissions, columns and RPCs do not exist.
 
 ### Step 3: Implement the schema additions
 
-In `0068_projects_operational_foundation.sql`:
+In `0070_projects_operational_foundation.sql`:
 
 - add `project_code`, `client_name`, `planned_start_date`, `expected_end_date`, `actual_completion_date`, `contract_reference`, `budget_reference`, `operational_notes` and `updated_by` to `projects`;
 - expand status to `planned`, `active`, `on_hold`, `completed`, `cancelled` and `archived` while preserving existing rows;
@@ -179,7 +179,7 @@ The save function must require an active coordinator assignment for the target p
 psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/projects_workflow.sql
 npx supabase db lint --linked --level warning
 git diff --check
-git add supabase/migrations/0068_projects_operational_foundation.sql supabase/tests/projects_workflow.sql
+git add supabase/migrations/0070_projects_operational_foundation.sql supabase/tests/projects_workflow.sql
 git commit -m "feat: secure project creation and assignments"
 ```
 
@@ -329,7 +329,7 @@ Add `projects` to:
 
 - `ModuleKey` and `oneHubModules` in `src/config/modules.ts`;
 - the `moduleKeys` Zod enum in `AuthGateway.ts`;
-- the `modules.enabled` JSON array in migration `0068_projects_operational_foundation.sql` using an idempotent update.
+- the `modules.enabled` JSON array in migration `0070_projects_operational_foundation.sql` using an idempotent update.
 
 Do not repurpose the existing `tracker` key. Projects owns `/projects/*`; Daily Tracker keeps `/tracker/*`.
 
@@ -356,7 +356,7 @@ Keep database authorization as the final boundary. Add temporary redirects from 
 ```bash
 npm run test:unit -- src/modules/auth/AuthGateway.test.tsx src/modules/auth/RequirePermission.test.tsx src/layout/AppShell.test.tsx src/app/router.test.tsx src/modules/projects/ProjectsPage.test.tsx
 npm run typecheck
-git add src/config/modules.ts src/modules/auth src/layout/AppShell.test.tsx src/app/router.tsx src/app/router.test.tsx src/modules/projects/ProjectsPage.tsx src/modules/projects/ProjectsPage.test.tsx supabase/migrations/0068_projects_operational_foundation.sql
+git add src/config/modules.ts src/modules/auth src/layout/AppShell.test.tsx src/app/router.tsx src/app/router.test.tsx src/modules/projects/ProjectsPage.tsx src/modules/projects/ProjectsPage.test.tsx supabase/migrations/0070_projects_operational_foundation.sql
 git commit -m "feat: add standalone projects navigation"
 ```
 
@@ -511,7 +511,7 @@ git commit -m "feat: connect project daily update queues"
 
 - Modify: `supabase/tests/cash_advances.sql`
 - Create: `supabase/tests/project_summaries.sql`
-- Create: `supabase/migrations/0069_project_cash_summary.sql`
+- Create: `supabase/migrations/0071_project_cash_summary.sql`
 - Create: `src/modules/projects/api/projectSummaries.ts`
 - Create: `src/modules/projects/api/projectSummaries.test.ts`
 - Create: `src/modules/projects/pages/ProjectCashTab.tsx`
@@ -554,7 +554,7 @@ psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/cas
 psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/project_summaries.sql
 npm run test:unit -- src/modules/projects/api/projectSummaries.test.ts src/modules/projects/pages/ProjectCashTab.test.tsx src/modules/projects/pages/ProjectSummaryTab.test.tsx
 npm run typecheck
-git add supabase/migrations/0069_project_cash_summary.sql supabase/tests/cash_advances.sql supabase/tests/project_summaries.sql src/modules/projects/api/projectSummaries.ts src/modules/projects/api/projectSummaries.test.ts src/modules/projects/pages/ProjectCashTab.tsx src/modules/projects/pages/ProjectCashTab.test.tsx src/modules/projects/pages/ProjectSummaryTab.tsx src/modules/projects/pages/ProjectSummaryTab.test.tsx
+git add supabase/migrations/0071_project_cash_summary.sql supabase/tests/cash_advances.sql supabase/tests/project_summaries.sql src/modules/projects/api/projectSummaries.ts src/modules/projects/api/projectSummaries.test.ts src/modules/projects/pages/ProjectCashTab.tsx src/modules/projects/pages/ProjectCashTab.test.tsx src/modules/projects/pages/ProjectSummaryTab.tsx src/modules/projects/pages/ProjectSummaryTab.test.tsx
 git commit -m "feat: add reconciled project cash summaries"
 ```
 
@@ -564,7 +564,7 @@ git commit -m "feat: add reconciled project cash summaries"
 
 - Modify: `supabase/tests/inventory_workflow.sql`
 - Modify: `supabase/tests/warehouse_approval_routing.sql`
-- Create: `supabase/migrations/0070_inventory_project_links.sql`
+- Create: `supabase/migrations/0072_inventory_project_links.sql`
 - Modify: `src/modules/warehouse/api/inventory.ts`
 - Create or modify: `src/modules/warehouse/api/inventory.test.ts`
 - Modify: `src/modules/warehouse/pages/RequestsPage.tsx`
@@ -611,7 +611,7 @@ psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/inv
 psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/warehouse_approval_routing.sql
 npm run test:unit -- src/modules/warehouse/api/inventory.test.ts src/modules/warehouse/pages/RequestsPage.test.tsx src/modules/warehouse/components/ScannerModal.test.tsx
 npm run typecheck
-git add supabase/migrations/0070_inventory_project_links.sql supabase/tests/inventory_workflow.sql supabase/tests/warehouse_approval_routing.sql src/modules/warehouse
+git add supabase/migrations/0072_inventory_project_links.sql supabase/tests/inventory_workflow.sql supabase/tests/warehouse_approval_routing.sql src/modules/warehouse
 git commit -m "feat: link inventory custody to projects"
 ```
 
@@ -620,7 +620,7 @@ git commit -m "feat: link inventory custody to projects"
 **Files:**
 
 - Modify: `supabase/tests/project_summaries.sql`
-- Modify: `supabase/migrations/0070_inventory_project_links.sql`
+- Modify: `supabase/migrations/0072_inventory_project_links.sql`
 - Modify: `src/modules/projects/api/projectSummaries.ts`
 - Modify: `src/modules/projects/api/projectSummaries.test.ts`
 - Create: `src/modules/projects/pages/ProjectInventoryTab.tsx`
@@ -652,7 +652,7 @@ Return small aggregates and project-scoped record references, not the whole ledg
 psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/project_summaries.sql
 npm run test:unit -- src/modules/projects/api/projectSummaries.test.ts src/modules/projects/pages/ProjectInventoryTab.test.tsx src/modules/projects/pages/ProjectSummaryTab.test.tsx
 npm run typecheck
-git add supabase/migrations/0070_inventory_project_links.sql supabase/tests/project_summaries.sql src/modules/projects/api/projectSummaries.ts src/modules/projects/api/projectSummaries.test.ts src/modules/projects/pages/ProjectInventoryTab.tsx src/modules/projects/pages/ProjectInventoryTab.test.tsx src/modules/projects/pages/ProjectSummaryTab.tsx src/modules/projects/pages/ProjectSummaryTab.test.tsx
+git add supabase/migrations/0072_inventory_project_links.sql supabase/tests/project_summaries.sql src/modules/projects/api/projectSummaries.ts src/modules/projects/api/projectSummaries.test.ts src/modules/projects/pages/ProjectInventoryTab.tsx src/modules/projects/pages/ProjectInventoryTab.test.tsx src/modules/projects/pages/ProjectSummaryTab.tsx src/modules/projects/pages/ProjectSummaryTab.test.tsx
 git commit -m "feat: add project inventory and custody summaries"
 ```
 
@@ -663,7 +663,7 @@ git commit -m "feat: add project inventory and custody summaries"
 - Modify: `supabase/tests/projects_workflow.sql`
 - Modify: `supabase/tests/project_summaries.sql`
 - Modify: `supabase/tests/storage_rls.sql`
-- Create: `supabase/migrations/0071_project_documents_history_completion.sql`
+- Create: `supabase/migrations/0073_project_documents_history_completion.sql`
 - Modify: `src/lib/security/privateFiles.ts`
 - Modify: `src/lib/security/privateFiles.test.ts`
 - Create: `src/modules/projects/pages/ProjectDocumentsTab.tsx`
@@ -729,7 +729,7 @@ psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/pro
 psql "$(cat supabase/.temp/pooler-url)" -v ON_ERROR_STOP=1 -f supabase/tests/storage_rls.sql
 npm run test:unit -- src/lib/security/privateFiles.test.ts src/modules/projects/pages/ProjectDocumentsTab.test.tsx src/modules/projects/pages/ProjectHistoryTab.test.tsx src/modules/projects/components/ProjectStatusDialog.test.tsx
 npm run typecheck
-git add supabase/migrations/0071_project_documents_history_completion.sql supabase/tests/projects_workflow.sql supabase/tests/project_summaries.sql supabase/tests/storage_rls.sql src/lib/security/privateFiles.ts src/lib/security/privateFiles.test.ts src/modules/projects
+git add supabase/migrations/0073_project_documents_history_completion.sql supabase/tests/projects_workflow.sql supabase/tests/project_summaries.sql supabase/tests/storage_rls.sql src/lib/security/privateFiles.ts src/lib/security/privateFiles.test.ts src/modules/projects
 git commit -m "feat: add project history and completion safeguards"
 ```
 

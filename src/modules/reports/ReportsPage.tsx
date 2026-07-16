@@ -22,6 +22,7 @@ export default function ReportsPage() {
   const permissions = access?.permissionKeys || []
   const hasViewPermission = permissions.includes('reports.view')
   const hasExportPermission = permissions.includes('reports.export')
+  const canExportPayrollDetails = hasExportPermission && permissions.includes('payroll.read')
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'workforce' | 'payroll' | 'inventory' | 'projects' | 'cash'>('workforce')
@@ -29,47 +30,25 @@ export default function ReportsPage() {
   const [exportFeedback, setExportFeedback] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
 
   // Queries
-  const { data: workforce, isLoading: isLoadingWorkforce } = useQuery({
-    queryKey: ['report-workforce'],
-    queryFn: reportsApi.getWorkforceSummary,
+  const { data: snapshot, isLoading: isLoadingSnapshot } = useQuery({
+    queryKey: ['governance-report-snapshot'],
+    queryFn: reportsApi.getGovernanceSnapshot,
     enabled: hasViewPermission
   })
-
-  const { data: payrollSummaries = [], isLoading: isLoadingPayroll } = useQuery({
-    queryKey: ['report-payroll'],
-    queryFn: reportsApi.getPayrollSummary,
-    enabled: hasViewPermission
-  })
-
-  const { data: inventory = [], isLoading: isLoadingInventory } = useQuery({
-    queryKey: ['report-inventory'],
-    queryFn: reportsApi.getInventorySummary,
-    enabled: hasViewPermission
-  })
-
-  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
-    queryKey: ['report-assets'],
-    queryFn: reportsApi.getAssetCustodySummary,
-    enabled: hasViewPermission
-  })
-
-  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['report-projects'],
-    queryFn: reportsApi.getProjectSummary,
-    enabled: hasViewPermission
-  })
-
-  const { data: cashReconciliation = [], isLoading: isLoadingCash } = useQuery({
-    queryKey: ['report-cash'],
-    queryFn: reportsApi.getCashReconciliationSummary,
-    enabled: hasViewPermission
-  })
-
-  const { data: exceptions = [], isLoading: isLoadingExceptions } = useQuery({
-    queryKey: ['report-exceptions'],
-    queryFn: reportsApi.getExceptionReport,
-    enabled: hasViewPermission
-  })
+  const workforce = snapshot?.workforce
+  const payrollSummaries = snapshot?.payrollSummaries ?? []
+  const inventory = snapshot?.inventory ?? []
+  const assets = snapshot?.assets ?? []
+  const projects = snapshot?.projects ?? []
+  const cashReconciliation = snapshot?.cashReconciliation ?? []
+  const exceptions = snapshot?.exceptions ?? []
+  const isLoadingWorkforce = isLoadingSnapshot
+  const isLoadingPayroll = isLoadingSnapshot
+  const isLoadingInventory = isLoadingSnapshot
+  const isLoadingAssets = isLoadingSnapshot
+  const isLoadingProjects = isLoadingSnapshot
+  const isLoadingCash = isLoadingSnapshot
+  const isLoadingExceptions = isLoadingSnapshot
 
   // Export Auditing Mutation
   const auditExportMutation = useMutation({
@@ -556,7 +535,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Statutory Returns Export Panel */}
-                {hasExportPermission && (
+                {canExportPayrollDetails && (
                   <div className="oh-card" style={{ padding: 'var(--space-4)', borderLeft: '4px solid var(--color-success)' }}>
                     <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 var(--space-2) 0' }}>Uganda Statutory Returns Export Panel</h4>
                     <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0 0 var(--space-4) 0' }}>

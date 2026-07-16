@@ -124,11 +124,17 @@ export function AppRouter() {
           <Route element={<ProtectedShell />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/my/*" element={<PortalPage />} />
-            <Route path="/hr/*" element={<HrPage />} />
-            <Route path="/inventory/*" element={<WarehousePage />} />
+            <Route element={<RequirePermission anyOf={['employees.read', 'payroll.read']} />}>
+              <Route path="/hr/*" element={<HrPage />} />
+            </Route>
+            <Route element={<RequirePermission permission="inventory.read" />}>
+              <Route path="/inventory/*" element={<WarehousePage />} />
+            </Route>
             <Route path="/cash/*" element={<CashPage />} />
             <Route path="/tracker/*" element={<TrackerPage />} />
-            <Route path="/reports/*" element={<ReportsPage />} />
+            <Route element={<RequirePermission permission="reports.view" />}>
+              <Route path="/reports/*" element={<ReportsPage />} />
+            </Route>
             <Route element={<RequirePermission permission="users.read" />}>
               <Route path="/admin/*" element={<AdminPage />} />
             </Route>

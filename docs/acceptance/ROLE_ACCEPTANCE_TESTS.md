@@ -133,13 +133,14 @@ Expected navigation: Home, My Workspace, Inventory Operations, Project Cash, and
 
 ### Warehouse manager
 
-Expected navigation: Home, My Workspace, Inventory Operations, and Reports & Audits.
+Expected navigation: Home, My Workspace, and Inventory Operations. General Reports & Audits remains hidden until a warehouse-specific reporting destination is approved.
 
 | ID | Journey | Expected result | Result | Evidence / notes |
 | --- | --- | --- | --- | --- |
 | WH-01 | Receive stock and fulfill an already approved request. | Ledger movement is atomic and records the fulfiller. |  |  |
 | WH-02 | Attempt to fulfill a request that still requires CFO approval. | Fulfillment is denied and stock remains unchanged. |  |  |
 | WH-03 | Attempt payroll, cash approval, or `/admin`. | Unauthorized action is absent or denied. |  |  |
+| WH-04 | Inspect navigation and type `/reports` directly. | General Reports & Audits is absent and the direct route is denied. | CODE PASS / MANUAL PENDING | `modules.test.ts`; report route guard in `router.tsx`; confirm with signed-in Warehouse Manager |
 
 ### Chief finance officer
 
@@ -152,15 +153,17 @@ Expected navigation: Home, My Workspace, HR Management, Inventory Operations, Pr
 | CFO-03 | Override an outstanding-advance warning with a reason. | Override succeeds and is permanently audited. |  |  |
 | CFO-04 | Record payroll payment execution. | Payment reference is recorded without modifying approved payroll. |  |  |
 | CFO-05 | Attempt HR payroll approval or `/admin`. | Unauthorized action is absent or denied. |  |  |
+| CFO-06 | Open the workforce report. | Company-wide headcount and department totals load without employee create/update/archive authority. | AUTOMATED PASS | `reports_audit.sql`; `reports.test.ts` |
 
 ### Managing director
 
-Expected navigation: Home, My Workspace, HR Management, Inventory Operations, Project Cash, Daily Tracker, and Reports & Audits.
+Expected navigation: Home, My Workspace, Project Cash, Daily Tracker, and Reports & Audits. Workforce and inventory oversight are delivered through the read-only Reports workspace rather than operational HR or Inventory destinations.
 
 | ID | Journey | Expected result | Result | Evidence / notes |
 | --- | --- | --- | --- | --- |
-| MD-01 | Review executive reports, project health, and operational exceptions. | Read-only oversight data loads from canonical ledgers. |  |  |
+| MD-01 | Review executive reports, project health, and operational exceptions. | Read-only oversight data loads from canonical ledgers. | AUTOMATED PARTIAL / MANUAL PENDING | `reports_audit.sql` proves workforce and approved-payroll boundaries; manually confirm every rendered report section |
 | MD-02 | Attempt warehouse fulfillment, payroll mutation, or `/admin`. | Unauthorized action is absent or denied unless separately assigned. |  |  |
+| MD-03 | Inspect navigation and type `/hr` or `/inventory` directly. | Employee and warehouse operational workspaces are absent and direct routes are denied; aggregate oversight remains available in Reports. | CODE PASS / MANUAL PENDING | `modules.test.ts`; HR/Inventory route guards; confirm with signed-in MD |
 
 ## Audit reconciliation
 

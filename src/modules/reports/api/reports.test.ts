@@ -44,6 +44,23 @@ beforeEach(() => {
 })
 
 describe('reportsApi', () => {
+  it('loads the curated governance snapshot through the protected RPC', async () => {
+    const snapshot = {
+      workforce: { totalHeadcount: 8, activeCount: 7, departmentCounts: [] },
+      payrollSummaries: [],
+      inventory: [],
+      assets: [],
+      projects: [],
+      cashReconciliation: [],
+      exceptions: []
+    }
+    state.rpc.mockResolvedValue({ data: snapshot, error: null })
+
+    await expect(reportsApi.getGovernanceSnapshot()).resolves.toEqual(snapshot)
+    expect(state.rpc).toHaveBeenCalledWith('get_governance_report_snapshot')
+    expect(state.from).not.toHaveBeenCalled()
+  })
+
   it('uses signed stock movements so issues reduce the reported balance', async () => {
     state.tables.consumable_items = [{
       id: 'item-1',

@@ -84,7 +84,7 @@ export const oneHubModules: readonly OneHubModule[] = [
     path: '/hr',
     section: 'People',
     icon: UsersRound,
-    roles: ['super_admin', 'hr_admin', 'cfo', 'managing_director'],
+    roles: ['super_admin', 'hr_admin', 'cfo'],
   },
   {
     key: 'inventory',
@@ -100,7 +100,6 @@ export const oneHubModules: readonly OneHubModule[] = [
       'project_manager',
       'warehouse_manager',
       'cfo',
-      'managing_director',
     ],
     showInMobileBar: true,
   },
@@ -147,7 +146,6 @@ export const oneHubModules: readonly OneHubModule[] = [
     roles: [
       'super_admin',
       'hr_admin',
-      'warehouse_manager',
       'cfo',
       'managing_director',
     ],

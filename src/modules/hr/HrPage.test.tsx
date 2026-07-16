@@ -18,6 +18,28 @@ describe('HrPage navigation helpers', () => {
 })
 
 describe('HrPage Routing', () => {
+  it('denies CFO direct access to employee management routes', async () => {
+    render(
+      <MemoryRouter initialEntries={['/hr/employees']}>
+        <AuthProvider
+          gateway={fakeGateway({
+            access: accessContext({
+              permissionKeys: ['payroll.read'],
+              roleKeys: ['cfo'],
+            }),
+          })}
+        >
+          <Routes>
+            <Route path="/forbidden" element={<p>Permission denied</p>} />
+            <Route path="/hr/*" element={<HrPage />} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Permission denied')).toBeInTheDocument()
+  })
+
   it('denies HR Setup when the setup-management permission is missing', async () => {
     render(
       <MemoryRouter initialEntries={['/hr/setup']}>

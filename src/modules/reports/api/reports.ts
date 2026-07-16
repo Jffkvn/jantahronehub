@@ -86,6 +86,16 @@ export interface ReceiptExceptionSummary {
   reviewedAt: string | null
 }
 
+export interface GovernanceReportSnapshot {
+  workforce: WorkforceSummary
+  payrollSummaries: PayrollPeriodSummaryItem[]
+  inventory: InventoryBalanceSummary[]
+  assets: AssetCustodySummary[]
+  projects: ProjectReportSummary[]
+  cashReconciliation: CashReconciliationSummary[]
+  exceptions: ReceiptExceptionSummary[]
+}
+
 // Database query interfaces
 interface DBDepartmentRelation {
   name: string
@@ -232,6 +242,12 @@ interface DBExceptionRow {
 }
 
 export const reportsApi = {
+  getGovernanceSnapshot: async (): Promise<GovernanceReportSnapshot> => {
+    const { data, error } = await getSupabaseClient().rpc('get_governance_report_snapshot')
+    if (error) throw error
+    return data as GovernanceReportSnapshot
+  },
+
   recordReportExport: async (reportName: string, format: 'excel' | 'csv' | 'pdf'): Promise<void> => {
     const { error } = await getSupabaseClient().rpc('record_report_export', {
       p_report_name: reportName,

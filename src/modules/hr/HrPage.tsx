@@ -42,10 +42,17 @@ export default function HrPage() {
       <HrNavigation permissions={permissions} />
       <Routes>
         <Route index element={<Navigate to={landingPath} replace />} />
-        <Route path="employees" element={<EmployeeDirectoryPage />} />
-        <Route path="employees/import" element={<EmployeeImportPage />} />
-        <Route path="employees/:employeeId" element={<EmployeeDossierRoute />} />
-        <Route path="payroll" element={<PayrollRunsPage permissions={permissions} />} />
+        <Route element={<RequirePermission permission="employees.read" />}>
+          <Route path="employees" element={<EmployeeDirectoryPage />} />
+          <Route path="employees/:employeeId" element={<EmployeeDossierRoute />} />
+        </Route>
+        <Route element={<RequirePermission allOf={['employees.read', 'employee_imports.manage']} />}>
+          <Route path="employees/import" element={<EmployeeImportPage />} />
+        </Route>
+        <Route element={<RequirePermission permission="payroll.read" />}>
+          <Route path="payroll" element={<PayrollRunsPage permissions={permissions} />} />
+          <Route path="payroll/:runId" element={<PayrollRunRoute permissions={permissions} />} />
+        </Route>
         <Route element={<RequirePermission permission="payroll.migrate_history" />}>
           <Route
             path="payroll/history-migration"
@@ -66,7 +73,6 @@ export default function HrPage() {
             }
           />
         </Route>
-        <Route path="payroll/:runId" element={<PayrollRunRoute permissions={permissions} />} />
         <Route path="*" element={<Navigate to={landingPath} replace />} />
       </Routes>
     </div>

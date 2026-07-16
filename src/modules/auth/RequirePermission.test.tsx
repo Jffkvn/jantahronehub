@@ -23,4 +23,38 @@ describe('RequirePermission', () => {
 
     expect(await screen.findByText('Permission denied')).toBeInTheDocument()
   })
+
+  it('allows a route when any accepted permission is present', async () => {
+    render(
+      <MemoryRouter initialEntries={['/hr']}>
+        <AuthProvider gateway={fakeGateway({ access: accessContext({ permissionKeys: ['payroll.read'] }) })}>
+          <Routes>
+            <Route path="/forbidden" element={<p>Permission denied</p>} />
+            <Route element={<RequirePermission anyOf={['employees.read', 'payroll.read']} />}>
+              <Route path="/hr" element={<p>HR workspace</p>} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('HR workspace')).toBeInTheDocument()
+  })
+
+  it('denies a route when none of the accepted permissions is present', async () => {
+    render(
+      <MemoryRouter initialEntries={['/hr']}>
+        <AuthProvider gateway={fakeGateway({ access: accessContext({ permissionKeys: ['reports.view'] }) })}>
+          <Routes>
+            <Route path="/forbidden" element={<p>Permission denied</p>} />
+            <Route element={<RequirePermission anyOf={['employees.read', 'payroll.read']} />}>
+              <Route path="/hr" element={<p>HR workspace</p>} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Permission denied')).toBeInTheDocument()
+  })
 })
