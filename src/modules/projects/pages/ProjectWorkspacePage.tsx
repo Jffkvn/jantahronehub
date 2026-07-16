@@ -9,6 +9,9 @@ import { ProjectTeamTab } from './ProjectTeamTab'
 import { ProjectUpdatesTab } from './ProjectUpdatesTab'
 import { ProjectCashTab } from './ProjectCashTab'
 import { ProjectInventoryTab } from './ProjectInventoryTab'
+import { ProjectDocumentsTab } from './ProjectDocumentsTab'
+import { ProjectHistoryTab } from './ProjectHistoryTab'
+import { ProjectStatusDialog } from '../components/ProjectStatusDialog'
 
 export type ProjectWorkspaceTab = 'summary' | 'team' | 'updates' | 'cash' | 'inventory' | 'documents' | 'history'
 
@@ -67,6 +70,7 @@ export function ProjectWorkspacePage({
           <StatusBadge tone={project.health_status === 'at_risk' ? 'danger' : project.health_status === 'needs_attention' ? 'warning' : 'success'}>
             {project.health_status.replace('_', ' ')}
           </StatusBadge>
+          <ProjectStatusDialog projectId={projectId} />
         </div>
       </header>
       <nav className="oh-project-tabs" aria-label="Project workspace">
@@ -92,7 +96,9 @@ export function ProjectWorkspacePage({
         {activeTab === 'updates' ? <ProjectUpdatesTab projectId={projectId} /> : null}
         {activeTab === 'cash' ? <ProjectCashTab projectId={projectId} /> : null}
         {activeTab === 'inventory' ? <ProjectInventoryTab projectId={projectId} /> : null}
-        {!['summary', 'team', 'updates', 'cash', 'inventory'].includes(activeTab) ? (
+        {activeTab === 'documents' ? <ProjectDocumentsTab projectId={projectId} /> : null}
+        {activeTab === 'history' ? <ProjectHistoryTab projectId={projectId} /> : null}
+        {!['summary', 'team', 'updates', 'cash', 'inventory', 'documents', 'history'].includes(activeTab) ? (
           <div className="oh-card"><p>This project-specific ledger is ready for its canonical workflow connection.</p></div>
         ) : null}
       </section>

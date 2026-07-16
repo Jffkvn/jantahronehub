@@ -23,6 +23,7 @@ begin
   end if;
   if not (
     public.has_permission('cash_advances.view_all')
+    or public.profile_has_role(public.current_profile_id(), 'super_admin')
     or public.is_member_on_project(p_project_id, public.current_profile_id())
   ) then
     raise insufficient_privilege using message = 'project cash summary access is required';

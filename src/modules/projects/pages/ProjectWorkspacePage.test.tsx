@@ -18,6 +18,9 @@ vi.mock('../api/projects', () => ({
     getAssignments: vi.fn().mockResolvedValue([]),
   },
 }))
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: () => ({ access: { permissionKeys: ['projects.read_all'], roleKeys: ['managing_director'] } }),
+}))
 vi.mock('./ProjectCashTab', () => ({
   ProjectCashTab: () => <article>Cash reconciliation</article>,
 }))
