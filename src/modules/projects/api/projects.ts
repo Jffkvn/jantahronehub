@@ -164,6 +164,7 @@ const exposedDatabaseMessages = new Set([
   'status transition requires the guarded project transition workflow',
   'project code or active assignment already exists',
   'project not found',
+  'project assignment read access is required',
   'daily update not found',
   'only the assigned original coordinator may revise this update',
   'feedback is required when requesting a revision',
@@ -207,6 +208,7 @@ function compactChanges(changes: UpdateProjectChanges) {
 
 export interface ProjectsApi {
   listCandidates(): Promise<ProjectCandidate[]>
+  listAssignments(projectId: string, includeHistory: boolean): Promise<ProjectAssignment[]>
   create(command: CreateProjectCommand): Promise<string>
   update(projectId: string, changes: UpdateProjectChanges, reason: string): Promise<void>
   assign(projectId: string, userId: string, role: ProjectRole, reason: string): Promise<void>
@@ -233,6 +235,28 @@ export function createProjectsApi(
     async listCandidates() {
       const data = await rpc('rpc_list_project_assignment_candidates')
       return z.array(z.unknown()).parse(data).map(parseProjectCandidate)
+    },
+    async listAssignments(projectId, includeHistory) {
+      const data = await rpc('rpc_list_project_assignments', {
+        p_project_id: z.uuid().parse(projectId),
+        p_include_history: includeHistory,
+      })
+      return z.array(z.object({
+        id: z.uuid(),
+        project_id: z.uuid(),
+        user_id: z.uuid(),
+        role_on_project: z.enum(['pm', 'coordinator']),
+        assigned_at: z.string(),
+        assigned_by: z.uuid().optional(),
+        assignment_reason: z.string().optional(),
+        unassigned_at: z.string().nullable(),
+        unassigned_by: z.uuid().nullable().optional(),
+        unassignment_reason: z.string().nullable().optional(),
+        display_name: z.string().trim().min(1),
+      })).parse(data).map(({ display_name, ...assignment }) => ({
+        ...assignment,
+        profiles: { display_name },
+      }))
     },
     async create(command) {
       const parsed = createProjectCommandSchema.parse(command)
@@ -311,22 +335,10 @@ export const projectsApi = {
     return data as unknown as Project | null
   },
   async getAssignments(projectId: string): Promise<ProjectAssignment[]> {
-    const { data, error } = await getSupabaseClient()
-      .from('project_assignments')
-      .select('*, profiles:user_id(display_name)')
-      .eq('project_id', projectId)
-      .is('unassigned_at', null)
-    if (error) throw safeRequestError(error)
-    return data as unknown as ProjectAssignment[]
+    return guardedApi.listAssignments(projectId, false)
   },
   async getAssignmentHistory(projectId: string): Promise<ProjectAssignment[]> {
-    const { data, error } = await getSupabaseClient()
-      .from('project_assignments')
-      .select('*, profiles:user_id(display_name)')
-      .eq('project_id', projectId)
-      .order('assigned_at', { ascending: false })
-    if (error) throw safeRequestError(error)
-    return data as unknown as ProjectAssignment[]
+    return guardedApi.listAssignments(projectId, true)
   },
   async getDailyUpdates(projectId?: string): Promise<DailyUpdate[]> {
     let query = getSupabaseClient()

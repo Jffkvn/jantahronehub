@@ -105,6 +105,38 @@ describe('Projects validation and response mapping', () => {
 })
 
 describe('Projects guarded RPC adapter', () => {
+  it('loads minimal assignment names through the guarded project RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{
+        id: '44444444-4444-4444-8444-444444444444',
+        project_id: projectId,
+        user_id: coordinatorId,
+        role_on_project: 'coordinator',
+        assigned_at: '2026-07-16T16:00:00Z',
+        assigned_by: pmId,
+        assignment_reason: 'Field delivery assignment',
+        unassigned_at: null,
+        unassigned_by: null,
+        unassignment_reason: null,
+        display_name: 'Olivia Pope',
+      }],
+      error: null,
+    })
+    const api = createProjectsApi({ rpc })
+
+    await expect(api.listAssignments(projectId, false)).resolves.toEqual([
+      expect.objectContaining({
+        user_id: coordinatorId,
+        role_on_project: 'coordinator',
+        profiles: { display_name: 'Olivia Pope' },
+      }),
+    ])
+    expect(rpc).toHaveBeenCalledWith('rpc_list_project_assignments', {
+      p_project_id: projectId,
+      p_include_history: false,
+    })
+  })
+
   it('calls only guarded mutation RPCs with snake-case payloads', async () => {
     const rpc = vi.fn()
       .mockResolvedValueOnce({ data: projectId, error: null })

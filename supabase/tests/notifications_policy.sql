@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(59);
+select plan(62);
 
 -- 1. Table & Column checks
 select has_table('public', 'notifications', 'notifications table should exist');
@@ -105,6 +105,29 @@ on conflict do nothing;
 delete from public.notification_deliveries;
 delete from public.notifications;
 
+-- Project assignment creates one private in-app notification and remains idempotent.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"90000000-0000-0000-0000-000000000011","role":"authenticated"}', true);
+select lives_ok(
+  $$
+    select public.rpc_unassign_project_member(
+      (select id from public.project_assignments where project_id = '90000000-0000-0000-0000-000000000020' and user_id = '90000000-0000-0000-0000-000000000012' and unassigned_at is null),
+      'Refresh notification assignment fixture'
+    )
+  $$,
+  'project coordinator fixture can be ended through the guarded workflow'
+);
+select lives_ok(
+  $$ select public.rpc_assign_project_member('90000000-0000-0000-0000-000000000020', '90000000-0000-0000-0000-000000000012', 'coordinator', 'Reassign notification fixture coordinator') $$,
+  'project coordinator can be reassigned through the guarded workflow'
+);
+reset role;
+select results_eq(
+  $$ select count(*)::integer from public.notifications where recipient_profile_id = '90000000-0000-0000-0000-000000000012' and title = 'Project assignment' $$,
+  $$ select 1 $$,
+  'project assignment creates one private in-app notification'
+);
+
 -- Create notifications via service_role context or as superuser before role testing
 select public.create_notification(
   '90000000-0000-0000-0000-000000000012',
@@ -140,14 +163,14 @@ select set_config('request.jwt.claims', '{"sub":"90000000-0000-0000-0000-0000000
 
 -- Coordinator selects their own
 select results_eq(
-  $$ select title from public.notifications $$,
+  $$ select title from public.notifications where event_key = 'test_notif_1' $$,
   $$ select 'Notification for Coord'::text $$,
   'Coordinator selects their own notifications'
 );
 
 -- Coordinator cannot read CFO notifications
 select results_ne(
-  $$ select title from public.notifications $$,
+  $$ select title from public.notifications where event_key = 'test_notif_2' $$,
   $$ select 'Notification for CFO'::text $$,
   'Coordinator cannot read CFO notifications'
 );

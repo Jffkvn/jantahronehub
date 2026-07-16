@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(58);
+select plan(64);
 
 -- Deterministic role fixtures. Every assertion below scopes its data by these IDs/codes.
 insert into auth.users (id, email)
@@ -72,6 +72,7 @@ select has_column('public', 'project_assignments', 'unassigned_by', 'assignments
 select has_column('public', 'project_assignments', 'unassignment_reason', 'assignments retain ending reason');
 
 select has_function('public', 'rpc_list_project_assignment_candidates', array[]::text[], 'candidate lookup exists');
+select has_function('public', 'rpc_list_project_assignments', array['uuid', 'boolean'], 'guarded assignment-name lookup exists');
 select has_function('public', 'rpc_create_project', array['jsonb', 'uuid', 'uuid[]', 'text'], 'project creation RPC exists');
 select has_function('public', 'rpc_update_project', array['uuid', 'jsonb', 'text'], 'project update RPC exists');
 select has_function('public', 'rpc_assign_project_member', array['uuid', 'uuid', 'text', 'text'], 'project assignment RPC exists');
@@ -177,6 +178,32 @@ select results_eq(
   $$ select '80000000-0000-0000-0000-000000000001'::uuid $$,
   'PM creation atomically assigns the caller as primary PM'
 );
+select results_eq(
+  $$
+    select assignment.display_name
+    from public.rpc_list_project_assignments(
+      (select id from public.projects where project_code = 'PM-OWN-001'),
+      false
+    ) assignment
+    where assignment.role_on_project = 'coordinator'
+  $$,
+  $$ select 'Projects Coordinator One'::text $$,
+  'assigned project readers receive the coordinator display name through the guarded lookup'
+);
+reset role;
+select is(
+  (
+    select count(*)::integer
+    from public.notifications notification
+    where notification.recipient_profile_id = '80000000-0000-0000-0000-000000000002'
+      and notification.event_key like 'project_assignment_%'
+  ),
+  1,
+  'project creation notifies the initially assigned coordinator once'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 -- PM can manage coordinators but cannot appoint a PM.
 select lives_ok(
@@ -190,6 +217,43 @@ select lives_ok(
   $$,
   'assigned PM can add a coordinator'
 );
+reset role;
+select is(
+  (
+    select count(*)::integer
+    from public.notifications notification
+    where notification.recipient_profile_id = '80000000-0000-0000-0000-000000000007'
+      and notification.event_key like 'project_assignment_%'
+  ),
+  1,
+  'later coordinator assignment creates one notification'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+select lives_ok(
+  $$
+    select public.rpc_assign_project_member(
+      (select id from public.projects where project_code = 'PM-OWN-001'),
+      '80000000-0000-0000-0000-000000000007'::uuid,
+      'coordinator',
+      'Retry existing field coordinator assignment'
+    )
+  $$,
+  'retrying an existing active assignment remains safe'
+);
+reset role;
+select is(
+  (
+    select count(*)::integer
+    from public.notifications notification
+    where notification.recipient_profile_id = '80000000-0000-0000-0000-000000000007'
+      and notification.event_key like 'project_assignment_%'
+  ),
+  1,
+  'assignment retry does not duplicate the notification'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 select throws_ok(
   $$
     select public.rpc_assign_project_member(
