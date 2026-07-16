@@ -139,8 +139,8 @@ export function CreateProjectPage() {
       <form noValidate onSubmit={submit}>
         {formError ? <FormError>{formError}</FormError> : null}
         <section className="oh-card oh-project-form-section">
-          <div><p className="oh-section-eyebrow">01 · Foundation</p><h2>Project identity</h2></div>
-          <div className="oh-form-grid">
+          <header className="oh-project-form-section__header"><span className="oh-project-form-step">01</span><div><p className="oh-section-eyebrow">Foundation</p><h2>Project identity</h2><span>Define the client-facing reference and site.</span></div></header>
+          <div className="oh-project-form-section__body oh-form-grid">
             <Input label="Project code" required value={draft.projectCode} onChange={(event) => update('projectCode', event.target.value)} />
             <Input label="Project name" required value={draft.name} onChange={(event) => update('name', event.target.value)} />
             <Input label="Client name" value={draft.clientName} onChange={(event) => update('clientName', event.target.value)} />
@@ -151,27 +151,31 @@ export function CreateProjectPage() {
         </section>
 
         <section className="oh-card oh-project-form-section">
-          <div><p className="oh-section-eyebrow">02 · Delivery</p><h2>Schedule and controls</h2></div>
-          <div className="oh-form-grid">
-            <Input label="Planned start date" type="date" value={draft.plannedStartDate} onChange={(event) => update('plannedStartDate', event.target.value)} />
-            <Input label="Expected end date" type="date" value={draft.expectedEndDate} onChange={(event) => update('expectedEndDate', event.target.value)} />
-            <label className="oh-field"><span className="oh-field__label">Initial status</span><select className="oh-input" value={draft.status} onChange={(event) => update('status', event.target.value as ProjectDraft['status'])}><option value="planned">Planned</option><option value="active">Active</option><option value="on_hold">On hold</option></select></label>
-            <label className="oh-field"><span className="oh-field__label">Operational health</span><select className="oh-input" value={draft.healthStatus} onChange={(event) => update('healthStatus', event.target.value as ProjectDraft['healthStatus'])}><option value="on_track">On track</option><option value="needs_attention">Needs attention</option><option value="at_risk">At risk</option></select></label>
-            <Input label="Estimated budget (UGX)" inputMode="decimal" value={draft.estimatedBudgetUgx} onChange={(event) => update('estimatedBudgetUgx', event.target.value)} />
-            <Input label="Budget notes" value={draft.budgetNotes} onChange={(event) => update('budgetNotes', event.target.value)} />
+          <header className="oh-project-form-section__header"><span className="oh-project-form-step">02</span><div><p className="oh-section-eyebrow">Delivery</p><h2>Schedule and controls</h2><span>Set the working dates, initial condition, and budget controls.</span></div></header>
+          <div className="oh-project-form-section__body">
+            <div className="oh-form-grid">
+              <Input label="Planned start date" type="date" value={draft.plannedStartDate} onChange={(event) => update('plannedStartDate', event.target.value)} />
+              <Input label="Expected end date" type="date" value={draft.expectedEndDate} onChange={(event) => update('expectedEndDate', event.target.value)} />
+              <label className="oh-field"><span className="oh-field__label">Initial status</span><select className="oh-input" value={draft.status} onChange={(event) => update('status', event.target.value as ProjectDraft['status'])}><option value="planned">Planned</option><option value="active">Active</option><option value="on_hold">On hold</option></select></label>
+              <label className="oh-field"><span className="oh-field__label">Operational health</span><select className="oh-input" value={draft.healthStatus} onChange={(event) => update('healthStatus', event.target.value as ProjectDraft['healthStatus'])}><option value="on_track">On track</option><option value="needs_attention">Needs attention</option><option value="at_risk">At risk</option></select></label>
+              <Input label="Estimated budget (UGX)" inputMode="decimal" value={draft.estimatedBudgetUgx} onChange={(event) => update('estimatedBudgetUgx', event.target.value)} />
+              <Input label="Budget notes" value={draft.budgetNotes} onChange={(event) => update('budgetNotes', event.target.value)} />
+            </div>
+            <label className="oh-field"><span className="oh-field__label">Operational notes</span><textarea className="oh-input oh-textarea" value={draft.operationalNotes} onChange={(event) => update('operationalNotes', event.target.value)} /></label>
           </div>
-          <label className="oh-field"><span className="oh-field__label">Operational notes</span><textarea className="oh-input oh-textarea" value={draft.operationalNotes} onChange={(event) => update('operationalNotes', event.target.value)} /></label>
         </section>
 
         <section className="oh-card oh-project-form-section">
-          <div><p className="oh-section-eyebrow">03 · Responsibility</p><h2>Project team</h2></div>
-          {isProjectManager ? (
-            <Input label="Primary project manager" value="You will be assigned automatically" disabled />
-          ) : (
-            <Combobox label="Primary project manager" options={pmOptions} value={draft.primaryPmId} onChange={(value) => update('primaryPmId', value)} placeholder="Optional — appoint later if needed" />
-          )}
-          <MultiCombobox label="Project coordinators" options={coordinatorOptions} values={draft.coordinatorIds} onChange={(values) => update('coordinatorIds', values)} placeholder="Search coordinators" />
-          <Input label="Creation reason" required hint="This is retained in the project audit history." value={draft.reason} onChange={(event) => update('reason', event.target.value)} />
+          <header className="oh-project-form-section__header"><span className="oh-project-form-step">03</span><div><p className="oh-section-eyebrow">Responsibility</p><h2>Project team</h2><span>Appoint accountable delivery roles and retain the reason.</span></div></header>
+          <div className="oh-project-form-section__body">
+            {isProjectManager ? (
+              <Input label="Primary project manager" value="You will be assigned automatically" disabled />
+            ) : (
+              <Combobox label="Primary project manager" options={pmOptions} value={draft.primaryPmId} onChange={(value) => update('primaryPmId', value)} placeholder="Optional — appoint later if needed" />
+            )}
+            <MultiCombobox label="Project coordinators" options={coordinatorOptions} values={draft.coordinatorIds} onChange={(values) => update('coordinatorIds', values)} placeholder="Search coordinators" />
+            <Input label="Creation reason" required hint="This is retained in the project audit history." value={draft.reason} onChange={(event) => update('reason', event.target.value)} />
+          </div>
         </section>
 
         <div className="oh-project-form-actions">

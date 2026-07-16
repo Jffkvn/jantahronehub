@@ -8,6 +8,10 @@ import { useAuth } from '../../auth/AuthProvider'
 import { projectsApi } from '../api/projects'
 import { projectQueryKeys } from '../types'
 
+function initials(name: string) {
+  return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+}
+
 export function ProjectTeamTab({ projectId }: { projectId: string }) {
   const { access } = useAuth()
   const queryClient = useQueryClient()
@@ -81,7 +85,7 @@ export function ProjectTeamTab({ projectId }: { projectId: string }) {
       <section className="oh-card">
         <div className="oh-team-section-header"><div><h3>Primary project manager</h3><p>One accountable PM can be active at a time.</p></div></div>
         <div className="oh-team-member">
-          <div><strong>{primaryPm?.profiles?.display_name ?? 'Not appointed'}</strong><span>{primaryPm ? 'Primary project manager' : 'CFO can appoint one when ready'}</span></div>
+          <span className="oh-team-avatar" aria-hidden="true">{initials(primaryPm?.profiles?.display_name ?? 'Not appointed')}</span><div><strong>{primaryPm?.profiles?.display_name ?? 'Not appointed'}</strong><span>{primaryPm ? 'Primary project manager' : 'CFO can appoint one when ready'}</span></div>
         </div>
         {canAssignAll ? (
           <div className="oh-team-action">
@@ -95,7 +99,7 @@ export function ProjectTeamTab({ projectId }: { projectId: string }) {
         <div className="oh-team-section-header"><div><h3>Coordinators</h3><p>Multiple field coordinators can work on the same project.</p></div></div>
         {coordinators.length ? <ul className="oh-project-team-list">{coordinators.map((coordinator) => (
           <li key={coordinator.id}>
-            <div><strong>{coordinator.profiles?.display_name ?? 'Coordinator'}</strong><span>Assigned {coordinator.assigned_at.slice(0, 10)}</span></div>
+            <div className="oh-team-person"><span className="oh-team-avatar" aria-hidden="true">{initials(coordinator.profiles?.display_name ?? 'Coordinator')}</span><div><strong>{coordinator.profiles?.display_name ?? 'Coordinator'}</strong><span>Field coordinator</span><small>Assigned {coordinator.assigned_at.slice(0, 10)}</small></div></div>
             {canManageCoordinators ? <button className="oh-button oh-button--ghost" type="button" onClick={() => { if (requireReason()) unassignMutation.mutate(coordinator.id) }}>Remove</button> : null}
           </li>
         ))}</ul> : <p>No coordinators assigned yet.</p>}

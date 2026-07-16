@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { History } from 'lucide-react'
+import { Activity, History } from 'lucide-react'
 import { projectOperationsApi } from '../api/projectOperations'
+import { EmptyState } from '../../../components/ui/EmptyState'
 
 const labels: Record<string, string> = {
   'project.created': 'Project created',
@@ -23,9 +24,9 @@ export function ProjectHistoryTab({ projectId }: { projectId: string }) {
   if (query.isLoading) return <div role="status">Loading project history…</div>
   if (query.isError) return <div className="oh-card">Project history could not be loaded.</div>
   return <div className="oh-project-history">
-    {(query.data || []).map((event, index) => <article className="oh-card" key={`${event.occurredAt}-${index}`}>
-      <History size={17} /><div><strong>{labels[event.eventType] || event.eventType.replaceAll('.', ' ')}</strong><p>{event.reason || 'Recorded automatically'}</p><small>{event.actorName || 'System'} · {new Date(event.occurredAt).toLocaleString()}</small></div>
+    {(query.data || []).map((event, index) => <article className="oh-card oh-project-history-item" key={`${event.occurredAt}-${index}`}>
+      <span className="oh-project-history-item__icon"><History size={17} /></span><div><strong>{labels[event.eventType] || event.eventType.replaceAll('.', ' ')}</strong><p>{event.reason || 'Recorded automatically'}</p><small>{event.actorName || 'System'} · {new Date(event.occurredAt).toLocaleString()}</small></div>
     </article>)}
-    {!query.data?.length ? <div className="oh-card">No project history recorded yet.</div> : null}
+    {!query.data?.length ? <EmptyState icon={<Activity size={22} />} title="No project activity yet" description="Project creation, assignment, status, document, and operational events will appear here." /> : null}
   </div>
 }

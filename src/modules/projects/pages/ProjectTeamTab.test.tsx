@@ -32,6 +32,7 @@ describe('ProjectTeamTab', () => {
     expect(await screen.findByText('Pat PM')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Coordinators' })).toBeInTheDocument()
     expect(screen.getByText('Cathy Coordinator')).toBeInTheDocument()
+    expect(screen.getByText('Field coordinator')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /appoint or replace pm/i })).toBeInTheDocument()
   })
 

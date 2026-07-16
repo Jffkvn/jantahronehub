@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileText, Upload } from 'lucide-react'
+import { FileText, FolderOpen, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { createPrivateObjectPath } from '../../../lib/security/privateFiles'
 import { getSupabaseClient } from '../../../lib/supabase/client'
 import { useAuth } from '../../auth/AuthProvider'
+import { EmptyState } from '../../../components/ui/EmptyState'
 
 const mimeExtensions = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const
 
@@ -34,7 +35,7 @@ export function ProjectDocumentsTab({ projectId }: { projectId: string }) {
     {canUpload ? <label className="oh-button oh-button--secondary" style={{ width: 'fit-content' }}><Upload size={16} /> Upload document<input hidden type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) upload.mutate(file) }} /></label> : null}
     {error ? <div className="oh-alert oh-alert--danger" role="alert">{error}</div> : null}
     {query.isLoading ? <div role="status">Loading documents…</div> : null}
-    {(query.data || []).map((document) => <article className="oh-card" key={document.id}><FileText size={18} /><strong>{document.display_name}</strong><small>{new Date(document.created_at).toLocaleString()}</small></article>)}
-    {!query.isLoading && !query.data?.length ? <div className="oh-card">No project documents uploaded yet.</div> : null}
+    {(query.data || []).map((document) => <article className="oh-card oh-project-document" key={document.id}><span className="oh-project-document__icon"><FileText size={18} /></span><div><strong>{document.display_name}</strong><small>{new Date(document.created_at).toLocaleString()}</small></div></article>)}
+    {!query.isLoading && !query.data?.length ? <EmptyState icon={<FolderOpen size={22} />} title="No project documents yet" description="Contracts, site evidence, and completion records will appear here when uploaded." /> : null}
   </div>
 }

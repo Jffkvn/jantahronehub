@@ -35,6 +35,12 @@ const headings: Record<ProjectWorkspaceTab, string> = {
   history: 'Project history',
 }
 
+function formatProjectDate(value: string | null | undefined) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(`${value}T00:00:00Z`))
+}
+
 export function ProjectWorkspacePage({
   projectId,
   activeTab,
@@ -81,11 +87,11 @@ export function ProjectWorkspacePage({
         ))}
       </nav>
       <section className="oh-project-tab-content">
-        <h2>{headings[activeTab]}</h2>
+        <header className="oh-project-tab-heading"><p>Project workspace</p><h2>{headings[activeTab]}</h2></header>
         {activeTab === 'summary' ? (
           <div className="oh-project-summary-grid">
-            <article className="oh-card"><CalendarDays /><span>Schedule</span><strong>{project.planned_start_date ?? 'Start pending'}</strong><small>{project.expected_end_date ? `Expected by ${project.expected_end_date}` : 'End date pending'}</small></article>
-            <article className="oh-card"><UsersRound /><span>Assigned team</span><strong>{assignmentsQuery.data?.length ?? 0}</strong><small>Primary PM and coordinators</small></article>
+            <article className="oh-card oh-project-summary-card"><span className="oh-project-summary-card__icon"><CalendarDays /></span><span>Schedule</span><strong>{formatProjectDate(project.planned_start_date) ?? 'Start pending'}</strong><small>{project.expected_end_date ? `Expected by ${formatProjectDate(project.expected_end_date)}` : 'End date pending'}</small></article>
+            <article className="oh-card oh-project-summary-card"><span className="oh-project-summary-card__icon"><UsersRound /></span><span>Assigned team</span><strong>{assignmentsQuery.data?.length ?? 0}</strong><small>Primary PM and coordinators</small></article>
             <ProjectCashTab projectId={projectId} compact />
             <ProjectInventoryTab projectId={projectId} compact />
           </div>

@@ -14,6 +14,8 @@ vi.mock('../api/projects', () => ({
       site_location: 'Kampala',
       status: 'active',
       health_status: 'on_track',
+      planned_start_date: '2026-07-01',
+      expected_end_date: '2026-07-31',
     }),
     getAssignments: vi.fn().mockResolvedValue([]),
   },
@@ -33,5 +35,7 @@ describe('ProjectWorkspacePage', () => {
       expect(screen.getByRole('link', { name: tab })).toBeInTheDocument()
     }
     expect(screen.getByRole('heading', { name: 'Project summary' })).toBeInTheDocument()
+    expect(screen.getByText('1 Jul 2026')).toBeInTheDocument()
+    expect(screen.getByText('Expected by 31 Jul 2026')).toBeInTheDocument()
   })
 })

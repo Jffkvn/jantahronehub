@@ -16,4 +16,10 @@ describe('ProjectHistoryTab', () => {
     expect(await screen.findByText('Project created')).toBeInTheDocument()
     expect(screen.getByText('New contract')).toBeInTheDocument()
   })
+
+  it('shows a purposeful empty state when no events exist', async () => {
+    vi.mocked(projectOperationsApi.history).mockResolvedValue([])
+    renderWithProviders(<ProjectHistoryTab projectId="11111111-1111-4111-8111-111111111111" />)
+    expect(await screen.findByRole('heading', { name: 'No project activity yet' })).toBeInTheDocument()
+  })
 })
