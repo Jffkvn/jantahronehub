@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
+import { CreateProjectPage } from './pages/CreateProjectPage'
+import { ProjectsListPage } from './pages/ProjectsListPage'
+
 function Placeholder({ heading }: { heading: string }) {
   return (
     <section className="oh-page">
@@ -16,8 +19,8 @@ function Placeholder({ heading }: { heading: string }) {
 export default function ProjectsPage() {
   return (
     <Routes>
-      <Route path="/projects" element={<Placeholder heading="Projects directory" />} />
-      <Route path="/projects/new" element={<Placeholder heading="Create project" />} />
+      <Route path="/projects" element={<ProjectsListPage />} />
+      <Route path="/projects/new" element={<CreateProjectPage />} />
       <Route path="/projects/:projectId/summary" element={<Placeholder heading="Project summary" />} />
       <Route path="/projects/:projectId/team" element={<Placeholder heading="Project team" />} />
       <Route path="/projects/:projectId/updates" element={<Placeholder heading="Daily updates" />} />

@@ -836,6 +836,145 @@ textarea {
   background: var(--color-primary-100);
 }
 
+.oh-projects-page,
+.oh-project-create {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.oh-kpi-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+
+.oh-kpi-item + .oh-kpi-item {
+  border-left: 1px solid var(--color-border);
+}
+
+.oh-kpi-item span {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.oh-kpi-item strong {
+  color: var(--color-navy-900);
+  font-size: 1.75rem;
+}
+
+.oh-projects-directory {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.oh-projects-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.oh-projects-search {
+  display: flex;
+  width: min(100%, 32rem);
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.oh-projects-search:focus-within {
+  border-color: var(--color-primary-600);
+  box-shadow: var(--focus-ring);
+}
+
+.oh-projects-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.oh-projects-directory td small {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.oh-project-link {
+  color: var(--color-navy-800);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.oh-project-link:hover {
+  color: var(--color-primary-700);
+  text-decoration: underline;
+}
+
+.oh-project-create form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.oh-project-form-section {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.oh-project-form-section h2 {
+  margin: 0;
+  color: var(--color-navy-900);
+}
+
+.oh-section-eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-primary-700);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.oh-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.oh-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.oh-project-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+@media (max-width: 44rem) {
+  .oh-projects-toolbar,
+  .oh-project-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .oh-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .oh-kpi-item + .oh-kpi-item {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+}
+
 .oh-form-error {
   color: var(--color-danger);
   font-weight: 650;
