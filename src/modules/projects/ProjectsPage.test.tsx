@@ -1,9 +1,27 @@
 import { screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import ProjectsPage from './ProjectsPage'
+
+vi.mock('./pages/ProjectsListPage', () => ({
+  ProjectsListPage: () => <h1>Projects directory</h1>,
+}))
+vi.mock('./pages/CreateProjectPage', () => ({
+  CreateProjectPage: () => <h1>Create project</h1>,
+}))
+vi.mock('./pages/ProjectWorkspacePage', () => ({
+  ProjectWorkspacePage: ({ activeTab }: { activeTab: string }) => <h1>{({
+    summary: 'Project summary',
+    team: 'Project team',
+    updates: 'Daily updates',
+    cash: 'Project cash',
+    inventory: 'Inventory & equipment',
+    documents: 'Project documents',
+    history: 'Project history',
+  } as Record<string, string>)[activeTab]}</h1>,
+}))
 
 describe('ProjectsPage route tree', () => {
   it.each([

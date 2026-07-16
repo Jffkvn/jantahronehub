@@ -1,19 +1,12 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import { CreateProjectPage } from './pages/CreateProjectPage'
 import { ProjectsListPage } from './pages/ProjectsListPage'
+import { ProjectWorkspacePage, type ProjectWorkspaceTab } from './pages/ProjectWorkspacePage'
 
-function Placeholder({ heading }: { heading: string }) {
-  return (
-    <section className="oh-page">
-      <div className="oh-page-header">
-        <div>
-          <p className="oh-page-eyebrow">Projects</p>
-          <h1>{heading}</h1>
-        </div>
-      </div>
-    </section>
-  )
+function ProjectRoute({ tab }: { tab: ProjectWorkspaceTab }) {
+  const { projectId } = useParams()
+  return projectId ? <ProjectWorkspacePage projectId={projectId} activeTab={tab} /> : <Navigate to="/projects" replace />
 }
 
 export default function ProjectsPage() {
@@ -21,13 +14,13 @@ export default function ProjectsPage() {
     <Routes>
       <Route path="/projects" element={<ProjectsListPage />} />
       <Route path="/projects/new" element={<CreateProjectPage />} />
-      <Route path="/projects/:projectId/summary" element={<Placeholder heading="Project summary" />} />
-      <Route path="/projects/:projectId/team" element={<Placeholder heading="Project team" />} />
-      <Route path="/projects/:projectId/updates" element={<Placeholder heading="Daily updates" />} />
-      <Route path="/projects/:projectId/cash" element={<Placeholder heading="Project cash" />} />
-      <Route path="/projects/:projectId/inventory" element={<Placeholder heading="Inventory & equipment" />} />
-      <Route path="/projects/:projectId/documents" element={<Placeholder heading="Project documents" />} />
-      <Route path="/projects/:projectId/history" element={<Placeholder heading="Project history" />} />
+      <Route path="/projects/:projectId/summary" element={<ProjectRoute tab="summary" />} />
+      <Route path="/projects/:projectId/team" element={<ProjectRoute tab="team" />} />
+      <Route path="/projects/:projectId/updates" element={<ProjectRoute tab="updates" />} />
+      <Route path="/projects/:projectId/cash" element={<ProjectRoute tab="cash" />} />
+      <Route path="/projects/:projectId/inventory" element={<ProjectRoute tab="inventory" />} />
+      <Route path="/projects/:projectId/documents" element={<ProjectRoute tab="documents" />} />
+      <Route path="/projects/:projectId/history" element={<ProjectRoute tab="history" />} />
       <Route path="*" element={<Navigate to="/projects" replace />} />
     </Routes>
   )
