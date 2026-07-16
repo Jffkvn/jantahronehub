@@ -721,6 +721,121 @@ textarea {
   color: var(--color-text-muted);
 }
 
+.oh-combobox {
+  position: relative;
+}
+
+.oh-combobox__input {
+  padding-right: 2.5rem;
+}
+
+.oh-combobox__chevron {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.75rem;
+  color: var(--color-navy-600);
+  pointer-events: none;
+  transition: transform 150ms ease;
+}
+
+.oh-combobox:has([aria-expanded='true']) .oh-combobox__chevron {
+  transform: rotate(180deg);
+}
+
+.oh-combobox__list {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  left: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--space-2);
+  margin: 0;
+  list-style: none;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.oh-combobox__option {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.oh-combobox__option small {
+  color: var(--color-text-muted);
+}
+
+.oh-combobox__option[data-active='true'] {
+  color: var(--color-navy-900);
+  background: var(--color-primary-100);
+}
+
+.oh-combobox__option[data-selected='true'] {
+  color: var(--color-primary-700);
+  font-weight: 700;
+}
+
+.oh-combobox__option[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.oh-combobox__empty {
+  padding: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.oh-multi-combobox {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.oh-multi-combobox__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.oh-multi-combobox__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: 0.25rem 0.4rem 0.25rem 0.65rem;
+  border: 1px solid var(--color-primary-200);
+  border-radius: 999px;
+  color: var(--color-primary-700);
+  background: var(--color-primary-50);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.oh-multi-combobox__chip button {
+  display: inline-grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.oh-multi-combobox__chip button:hover,
+.oh-multi-combobox__chip button:focus-visible {
+  background: var(--color-primary-100);
+}
+
 .oh-form-error {
   color: var(--color-danger);
   font-weight: 650;
