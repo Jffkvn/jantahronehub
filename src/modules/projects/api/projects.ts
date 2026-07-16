@@ -319,6 +319,15 @@ export const projectsApi = {
     if (error) throw safeRequestError(error)
     return data as unknown as ProjectAssignment[]
   },
+  async getAssignmentHistory(projectId: string): Promise<ProjectAssignment[]> {
+    const { data, error } = await getSupabaseClient()
+      .from('project_assignments')
+      .select('*, profiles:user_id(display_name)')
+      .eq('project_id', projectId)
+      .order('assigned_at', { ascending: false })
+    if (error) throw safeRequestError(error)
+    return data as unknown as ProjectAssignment[]
+  },
   async getDailyUpdates(projectId?: string): Promise<DailyUpdate[]> {
     let query = getSupabaseClient()
       .from('daily_updates')

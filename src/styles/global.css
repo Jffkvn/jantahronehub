@@ -1025,10 +1025,18 @@ textarea {
 .oh-project-team-list { display: grid; gap: var(--space-3); padding: 0; margin: 0; list-style: none; }
 .oh-project-team-list li { display: flex; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
 .oh-project-team-list span { color: var(--color-text-muted); }
+.oh-project-team { display: grid; gap: var(--space-4); }
+.oh-project-team > .oh-card { display: grid; gap: var(--space-4); }
+.oh-team-section-header h3, .oh-project-team > .oh-card > h3 { margin: 0; color: var(--color-navy-900); }
+.oh-team-section-header p { margin: var(--space-1) 0 0; color: var(--color-text-muted); }
+.oh-team-member, .oh-team-member > div, .oh-project-team-list li > div { display: grid; gap: var(--space-1); }
+.oh-team-member span { color: var(--color-text-muted); }
+.oh-team-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
 
 @media (max-width: 44rem) {
   .oh-project-identity { align-items: flex-start; flex-direction: column; }
   .oh-project-summary-grid { grid-template-columns: 1fr; }
+  .oh-team-action { grid-template-columns: 1fr; }
 }
 
 .oh-form-error {

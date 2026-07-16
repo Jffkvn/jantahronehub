@@ -5,6 +5,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { projectsApi } from '../api/projects'
 import { projectQueryKeys } from '../types'
+import { ProjectTeamTab } from './ProjectTeamTab'
 
 export type ProjectWorkspaceTab = 'summary' | 'team' | 'updates' | 'cash' | 'inventory' | 'documents' | 'history'
 
@@ -83,13 +84,7 @@ export function ProjectWorkspacePage({
           </div>
         ) : null}
         {activeTab === 'team' ? (
-          <div className="oh-card">
-            {assignmentsQuery.data?.length ? (
-              <ul className="oh-project-team-list">{assignmentsQuery.data.map((assignment) => (
-                <li key={assignment.id}><strong>{assignment.profiles?.display_name ?? 'Assigned team member'}</strong><span>{assignment.role_on_project === 'pm' ? 'Primary project manager' : 'Coordinator'}</span></li>
-              ))}</ul>
-            ) : <p>No active team assignments yet.</p>}
-          </div>
+          <ProjectTeamTab projectId={projectId} />
         ) : null}
         {!['summary', 'team'].includes(activeTab) ? (
           <div className="oh-card"><p>This project-specific ledger is ready for its canonical workflow connection.</p></div>
