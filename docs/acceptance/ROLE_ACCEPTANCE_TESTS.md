@@ -44,6 +44,14 @@ For every result, record:
 - the related OneHub audit event for a mutation;
 - a concise defect note for every failure.
 
+## Manual role-visibility checkpoint — 16 July 2026
+
+**Result:** PASS
+
+The product owner signed in to every configured role account and confirmed that each persona sees the intended modules and that destinations outside the role are absent. This closes the manual navigation/visibility checkpoint for the role-access correction in commit `00c7713`.
+
+This confirmation covers who can see which workspace. Workflow rows below that still have an empty result, `MANUAL PENDING`, or `AUTOMATED PARTIAL` remain open until their actual create, approve, submit, fulfil, review, or direct-URL journey is tested.
+
 ## User Administration controls
 
 | ID | Actor | Expected result | Result | Evidence / notes |
