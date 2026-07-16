@@ -42,12 +42,12 @@ join public.roles role on role.key = assigned.role_key
 on conflict do nothing;
 
 -- Create a test project and assign coordinator to it
-insert into public.projects (id, name, site_location, status, created_by)
-values ('90000000-0000-0000-0000-000000000099', 'Project Cash Test', 'Jinja Site', 'active', '80000000-0000-0000-0000-000000000004')
+insert into public.projects (id, project_code, name, site_location, status, created_by, updated_by)
+values ('90000000-0000-0000-0000-000000000099', 'CASH-TEST', 'Project Cash Test', 'Jinja Site', 'active', '80000000-0000-0000-0000-000000000004', '80000000-0000-0000-0000-000000000004')
 on conflict (id) do nothing;
 
-insert into public.project_assignments (id, project_id, user_id, role_on_project)
-values ('90000000-0000-0000-0000-000000000088', '90000000-0000-0000-0000-000000000099', '80000000-0000-0000-0000-000000000002', 'coordinator')
+insert into public.project_assignments (id, project_id, user_id, role_on_project, assigned_by, assignment_reason)
+values ('90000000-0000-0000-0000-000000000088', '90000000-0000-0000-0000-000000000099', '80000000-0000-0000-0000-000000000002', 'coordinator', '80000000-0000-0000-0000-000000000004', 'Cash workflow fixture assignment')
 on conflict (id) do nothing;
 
 -- 3. Run RLS & RPC Tests

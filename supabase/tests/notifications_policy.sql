@@ -91,14 +91,14 @@ insert into public.user_roles (profile_id, role_id)
 select '90000000-0000-0000-0000-000000000014', id from public.roles where key = 'warehouse_manager' on conflict do nothing;
 
 -- Insert projects
-insert into public.projects (id, name, site_location, health_status, created_by) values
-  ('90000000-0000-0000-0000-000000000020', 'Test Alerts Project', 'Kampala', 'on_track', '90000000-0000-0000-0000-000000000010')
+insert into public.projects (id, project_code, name, site_location, health_status, created_by, updated_by) values
+  ('90000000-0000-0000-0000-000000000020', 'ALERT-TEST', 'Test Alerts Project', 'Kampala', 'on_track', '90000000-0000-0000-0000-000000000010', '90000000-0000-0000-0000-000000000010')
 on conflict (id) do nothing;
 
 -- Link project assignments
-insert into public.project_assignments (project_id, user_id, role_on_project) values
-  ('90000000-0000-0000-0000-000000000020', '90000000-0000-0000-0000-000000000013', 'pm'),
-  ('90000000-0000-0000-0000-000000000020', '90000000-0000-0000-0000-000000000012', 'coordinator')
+insert into public.project_assignments (project_id, user_id, role_on_project, assigned_by, assignment_reason) values
+  ('90000000-0000-0000-0000-000000000020', '90000000-0000-0000-0000-000000000013', 'pm', '90000000-0000-0000-0000-000000000010', 'Notification fixture assignment'),
+  ('90000000-0000-0000-0000-000000000020', '90000000-0000-0000-0000-000000000012', 'coordinator', '90000000-0000-0000-0000-000000000010', 'Notification fixture assignment')
 on conflict do nothing;
 
 -- Clean notifications and outbox for clean assertions

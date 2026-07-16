@@ -126,7 +126,7 @@ select ok(
 );
 select is(
   public.get_my_access_context() -> 'enabled_modules',
-  '["home","my_workspace","hr","inventory","cash","tracker","reports","admin"]'::jsonb,
+  '["home","my_workspace","hr","inventory","cash","tracker","reports","admin","projects"]'::jsonb,
   'access context returns the shell canonical module keys in configured order'
 );
 select is(

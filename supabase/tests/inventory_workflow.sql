@@ -74,6 +74,10 @@ insert into public.projects (
   'INV-BRIDGE', 'Bridge Construction', 'active', 'on_track',
   '60000000-0000-0000-0000-000000000003',
   '60000000-0000-0000-0000-000000000003'
+), (
+  'INV-FINANCE', 'Finance Oversight', 'active', 'on_track',
+  '60000000-0000-0000-0000-000000000004',
+  '60000000-0000-0000-0000-000000000004'
 );
 
 insert into public.project_assignments (
