@@ -738,3 +738,11 @@ grant execute on function public.rpc_assign_project_member(uuid, uuid, text, tex
 grant execute on function public.rpc_unassign_project_member(uuid, text) to authenticated;
 grant execute on function public.rpc_save_daily_update(uuid, uuid, date, text, text[], boolean) to authenticated;
 grant execute on function public.rpc_review_daily_update(uuid, text, text) to authenticated;
+
+update public.feature_settings
+set value = case
+      when value @> '["projects"]'::jsonb then value
+      else value || '["projects"]'::jsonb
+    end,
+    updated_at = now()
+where key = 'modules.enabled';

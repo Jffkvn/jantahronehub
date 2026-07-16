@@ -69,6 +69,7 @@ const moduleKeys = z.enum([
   'hr',
   'inventory',
   'cash',
+  'projects',
   'tracker',
   'reports',
   'admin',

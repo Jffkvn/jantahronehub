@@ -57,4 +57,23 @@ describe('RequirePermission', () => {
 
     expect(await screen.findByText('Permission denied')).toBeInTheDocument()
   })
+
+  it('keeps allOf strict while accepting any one anyOf permission', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects']}>
+        <AuthProvider gateway={fakeGateway({ access: accessContext({
+          permissionKeys: ['projects.read', 'audit.read'],
+        }) })}>
+          <Routes>
+            <Route path="/forbidden" element={<p>Permission denied</p>} />
+            <Route element={<RequirePermission allOf={['audit.read']} anyOf={['projects.read_all', 'projects.read']} />}>
+              <Route path="/projects" element={<p>Projects workspace</p>} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Projects workspace')).toBeInTheDocument()
+  })
 })

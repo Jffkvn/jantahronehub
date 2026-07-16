@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import { oneHubModules } from '../config/modules'
 import { AppShell } from '../layout/AppShell'
@@ -20,6 +20,7 @@ const HrPage = lazy(() => import('../modules/hr/HrPage'))
 const WarehousePage = lazy(() => import('../modules/warehouse/WarehousePage'))
 const CashPage = lazy(() => import('../modules/cash/CashPage'))
 const TrackerPage = lazy(() => import('../modules/projects/TrackerPage'))
+const ProjectsPage = lazy(() => import('../modules/projects/ProjectsPage'))
 const ReportsPage = lazy(() => import('../modules/reports/ReportsPage'))
 const AdminPage = lazy(() => import('../modules/admin/AdminPage'))
 const PayrollPreview = lazy(() => import('./PayrollPreview').then((module)=>({default:module.PayrollPreview})))
@@ -90,6 +91,11 @@ function ProtectedShell() {
   )
 }
 
+function LegacyProjectRedirect() {
+  const { projectId } = useParams()
+  return <Navigate to={`/projects/${projectId}/summary`} replace />
+}
+
 export function AppRouter() {
   return (
     <Suspense fallback={<RouteLoading />}>
@@ -131,6 +137,16 @@ export function AppRouter() {
               <Route path="/inventory/*" element={<WarehousePage />} />
             </Route>
             <Route path="/cash/*" element={<CashPage />} />
+            <Route element={<RequirePermission anyOf={[
+              'projects.manage',
+              'projects.read_all',
+              'projects.read',
+              'projects.read_operational',
+              'projects.create',
+            ]} />}>
+              <Route path="/projects/*" element={<ProjectsPage />} />
+              <Route path="/tracker/projects/:projectId" element={<LegacyProjectRedirect />} />
+            </Route>
             <Route path="/tracker/*" element={<TrackerPage />} />
             <Route element={<RequirePermission permission="reports.view" />}>
               <Route path="/reports/*" element={<ReportsPage />} />

@@ -2,6 +2,7 @@ import {
   BriefcaseBusiness,
   ChartNoAxesCombined,
   CircleDollarSign,
+  FolderKanban,
   House,
   PackageOpen,
   Settings,
@@ -26,6 +27,7 @@ export type ModuleKey =
   | 'hr'
   | 'inventory'
   | 'cash'
+  | 'projects'
   | 'tracker'
   | 'reports'
   | 'admin'
@@ -115,6 +117,24 @@ export const oneHubModules: readonly OneHubModule[] = [
       'super_admin',
       'coordinator',
       'project_manager',
+      'cfo',
+      'managing_director',
+    ],
+    showInMobileBar: true,
+  },
+  {
+    key: 'projects',
+    label: 'Projects',
+    shortLabel: 'Projects',
+    description: 'Project setup, teams, status, cash, and inventory',
+    path: '/projects',
+    section: 'Operations',
+    icon: FolderKanban,
+    roles: [
+      'super_admin',
+      'coordinator',
+      'project_manager',
+      'warehouse_manager',
       'cfo',
       'managing_director',
     ],

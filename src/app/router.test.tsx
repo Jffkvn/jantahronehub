@@ -11,6 +11,9 @@ import { AppRouter } from './router'
 vi.mock('../modules/admin/AdminPage', () => ({
   default: () => <h1>User administration workspace</h1>,
 }))
+vi.mock('../modules/projects/ProjectsPage', () => ({
+  default: () => <h1>Standalone Projects workspace</h1>,
+}))
 
 function renderRouter(path: string, access: AccessContext) {
   const queryClient = new QueryClient({
@@ -106,5 +109,32 @@ describe('AppRouter', () => {
     expect(
       await screen.findByRole('heading', { name: /user administration workspace/i }),
     ).toBeInTheDocument()
+  })
+
+  it.each([
+    ['cfo', ['projects.read_all']],
+    ['project_manager', ['projects.read']],
+    ['coordinator', ['projects.read']],
+    ['managing_director', ['projects.read_all']],
+    ['warehouse_manager', ['projects.read_operational']],
+    ['super_admin', ['projects.manage']],
+  ] as const)('allows %s to open the appropriate Projects workspace', async (role, permissionKeys) => {
+    renderRouter('/projects', accessContext({
+      roleKeys: [role],
+      permissionKeys: [...permissionKeys],
+      enabledModules: ['home', 'projects'],
+    }))
+
+    expect(await screen.findByRole('heading', { name: 'Standalone Projects workspace' })).toBeInTheDocument()
+  })
+
+  it('denies a manually entered Projects route to an unrelated role', async () => {
+    renderRouter('/projects', accessContext({
+      roleKeys: ['hr_admin'],
+      permissionKeys: ['employees.read'],
+      enabledModules: ['home', 'projects'],
+    }))
+
+    expect(await screen.findByRole('heading', { name: /we could not open this workspace/i })).toBeInTheDocument()
   })
 })

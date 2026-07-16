@@ -123,6 +123,17 @@ describe('AppShell', () => {
     expect(screen.getByText('Dashboard content')).toBeInTheDocument()
   })
 
+  it('shows Projects and Daily Tracker as separate ordered workspaces', () => {
+    renderShell('super_admin', ['home', 'projects', 'tracker'])
+
+    const navigation = screen.getByLabelText('Primary navigation')
+    const links = Array.from(navigation.querySelectorAll('a')).map((link) => link.textContent)
+    expect(links.findIndex((label) => label?.includes('Projects'))).toBeGreaterThan(-1)
+    expect(links.findIndex((label) => label?.includes('Daily Tracker'))).toBeGreaterThan(
+      links.findIndex((label) => label?.includes('Projects')),
+    )
+  })
+
   it('opens and closes the mobile navigation accessibly', async () => {
     const user = userEvent.setup()
     renderShell('hr_admin', ['home', 'my_workspace', 'hr'])
