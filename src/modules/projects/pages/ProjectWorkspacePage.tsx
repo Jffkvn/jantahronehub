@@ -6,6 +6,7 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { projectsApi } from '../api/projects'
 import { projectQueryKeys } from '../types'
 import { ProjectTeamTab } from './ProjectTeamTab'
+import { ProjectUpdatesTab } from './ProjectUpdatesTab'
 
 export type ProjectWorkspaceTab = 'summary' | 'team' | 'updates' | 'cash' | 'inventory' | 'documents' | 'history'
 
@@ -86,7 +87,8 @@ export function ProjectWorkspacePage({
         {activeTab === 'team' ? (
           <ProjectTeamTab projectId={projectId} />
         ) : null}
-        {!['summary', 'team'].includes(activeTab) ? (
+        {activeTab === 'updates' ? <ProjectUpdatesTab projectId={projectId} /> : null}
+        {!['summary', 'team', 'updates'].includes(activeTab) ? (
           <div className="oh-card"><p>This project-specific ledger is ready for its canonical workflow connection.</p></div>
         ) : null}
       </section>
