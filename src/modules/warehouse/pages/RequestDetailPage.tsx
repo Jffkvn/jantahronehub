@@ -21,8 +21,7 @@ export function RequestDetailPage() {
     queryKey: ['request', requestId],
     queryFn: async () => {
       if (!requestId) throw new Error('Request ID is required')
-      const reqList = await inventoryApi.listRequests()
-      const req = reqList.find(r => r.id === requestId)
+      const req = await inventoryApi.getRequest(requestId)
       if (!req) throw new Error('Stock request not found')
       return req
     }

@@ -1,16 +1,31 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo, useEffect } from 'react'
 import { inventoryApi, type EquipmentAsset } from '../api/inventory'
 import { Button } from '../../../components/ui/Button'
 import { Modal } from '../../../components/ui/Modal'
-import { ShieldAlert, QrCode, Printer } from 'lucide-react'
+import { ShieldAlert, QrCode, Printer, Plus } from 'lucide-react'
 import { renderQrLabel } from '../printQrLabel'
+import { CategoryChoice } from '../components/CategoryChoice'
 
 export function EquipmentPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [receivingAsset, setReceivingAsset] = useState(false)
+  const [categoryId, setCategoryId] = useState('')
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryDescription, setNewCategoryDescription] = useState('')
+  const [modelName, setModelName] = useState('')
+  const [serialNumber, setSerialNumber] = useState('')
+  const [isSensitive, setIsSensitive] = useState(false)
+  const [newCondition, setNewCondition] = useState('New and inspected')
+  const [supplierName, setSupplierName] = useState('')
+  const [grnNumber, setGrnNumber] = useState('')
+  const [invoiceNumber, setInvoiceNumber] = useState('')
+  const [receivedDate, setReceivedDate] = useState(new Date().toISOString().slice(0, 10))
+  const [purchaseValue, setPurchaseValue] = useState(0)
+  const [receiptError, setReceiptError] = useState('')
 
   // QR Modal state
   const [selectedAsset, setSelectedAsset] = useState<EquipmentAsset | null>(null)
@@ -26,6 +41,20 @@ export function EquipmentPage() {
   const equipment = useQuery({ queryKey: ['equipment'], queryFn: inventoryApi.listEquipment })
   const categories = useQuery({ queryKey: ['categories'], queryFn: inventoryApi.listCategories })
   const warehouses = useQuery({ queryKey: ['warehouses'], queryFn: inventoryApi.listWarehouses })
+  const headquartersWarehouse = (warehouses.data || []).find((warehouse) => warehouse.code === 'HQ-01') ?? warehouses.data?.[0]
+  const warehouseId = headquartersWarehouse?.id ?? ''
+  const receiveAsset = useMutation({
+    mutationFn: () => inventoryApi.receiveNewEquipment(
+      { categoryId, newCategoryName, newCategoryDescription, modelName, serialNumber, isSensitive, conditionNotes: newCondition },
+      { warehouseId, supplierName, grnNumber, invoiceNumber, receivedDate, purchaseValue }
+    ),
+    onSuccess: async () => {
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ['equipment'] }), queryClient.invalidateQueries({ queryKey: ['movements'] }), queryClient.invalidateQueries({ queryKey: ['categories'] })])
+      setReceivingAsset(false); setCategoryId(''); setNewCategoryName(''); setNewCategoryDescription(''); setModelName(''); setSerialNumber(''); setIsSensitive(false); setNewCondition('New and inspected')
+      setSupplierName(''); setGrnNumber(''); setInvoiceNumber(''); setPurchaseValue(0); setReceiptError('')
+    },
+    onError: (error: Error) => setReceiptError(error.message || 'Equipment receipt could not be recorded.')
+  })
 
   // Lazy load and generate QR code
   useEffect(() => {
@@ -124,6 +153,7 @@ export function EquipmentPage() {
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Equipment & Assets</h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Asset directory, tracking status, sensitivity levels, and printing QR labels.</p>
         </div>
+        <Button onClick={() => setReceivingAsset(true)}><Plus size={16} /> Add equipment asset</Button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -237,6 +267,29 @@ export function EquipmentPage() {
           </tbody>
         </table>
       </div>
+
+      <Modal open={receivingAsset} title="Add and receive equipment asset" onClose={() => setReceivingAsset(false)}>
+        <form className="oh-form-stack" onSubmit={(event) => { event.preventDefault(); receiveAsset.mutate() }}>
+          {receiptError ? <div className="oh-alert oh-alert--danger" role="alert">{receiptError}</div> : null}
+          <div className="oh-form-grid">
+            <div className="oh-field"><label className="oh-field__label">Asset / model name</label><input className="oh-input" value={modelName} onChange={(event) => setModelName(event.target.value)} required /></div>
+            <div className="oh-field"><label className="oh-field__label">Serial number</label><input className="oh-input" value={serialNumber} onChange={(event) => setSerialNumber(event.target.value)} required /></div>
+            <CategoryChoice categories={categories.data || []} categoryId={categoryId} newCategoryName={newCategoryName} newCategoryDescription={newCategoryDescription} onCategoryIdChange={setCategoryId} onNewCategoryNameChange={setNewCategoryName} onNewCategoryDescriptionChange={setNewCategoryDescription} />
+            <div className="oh-field"><span className="oh-field__label">Inventory location</span><div className="oh-readonly-field">{headquartersWarehouse?.name ?? 'Loading HQ warehouse…'}</div></div>
+            <div className="oh-field oh-form-grid__full"><label className="oh-field__label">Condition on receipt</label><textarea className="oh-input" value={newCondition} onChange={(event) => setNewCondition(event.target.value)} required /></div>
+            <label className="oh-checkbox"><input type="checkbox" checked={isSensitive} onChange={(event) => setIsSensitive(event.target.checked)} /> Sensitive / controlled asset</label>
+          </div>
+          <div className="oh-form-section-divider"><strong>Supplier & purchase details</strong><span>The system creates the asset record, receipt and QR-ready identity together.</span></div>
+          <div className="oh-form-grid">
+            <div className="oh-field"><label className="oh-field__label">Supplier name</label><input className="oh-input" value={supplierName} onChange={(event) => setSupplierName(event.target.value)} required /></div>
+            <div className="oh-field"><label className="oh-field__label">GRN number</label><input className="oh-input" value={grnNumber} onChange={(event) => setGrnNumber(event.target.value)} required /></div>
+            <div className="oh-field"><label className="oh-field__label">Supplier invoice number</label><input className="oh-input" value={invoiceNumber} onChange={(event) => setInvoiceNumber(event.target.value)} required /></div>
+            <div className="oh-field"><label className="oh-field__label">Received date</label><input className="oh-input" type="date" max={new Date().toISOString().slice(0, 10)} value={receivedDate} onChange={(event) => setReceivedDate(event.target.value)} required /></div>
+            <div className="oh-field"><label className="oh-field__label">Purchase value (UGX)</label><input className="oh-input" type="number" min={0} value={purchaseValue} onChange={(event) => setPurchaseValue(Number(event.target.value))} required /></div>
+          </div>
+          <div className="oh-modal-actions"><Button variant="secondary" type="button" onClick={() => setReceivingAsset(false)}>Cancel</Button><Button type="submit" loading={receiveAsset.isPending} disabled={!warehouseId}>Create and receive asset</Button></div>
+        </form>
+      </Modal>
 
       {/* 1. QR code Label Modal */}
       <Modal open={!!selectedAsset} title="Equipment QR Code Label" onClose={() => { setSelectedAsset(null); setQrCodeUrl(''); }}>

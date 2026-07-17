@@ -6,6 +6,9 @@ const allowedTypes = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  avif: 'image/avif',
 } as const
 
 export type AllowedExtension = keyof typeof allowedTypes
@@ -56,6 +59,12 @@ function startsWith(bytes: Uint8Array, signature: readonly number[]) {
   return signature.every((byte, index) => bytes[index] === byte)
 }
 
+function hasIsoBmffBrand(bytes: Uint8Array, allowedBrands: readonly string[]) {
+  if (!startsWith(bytes.slice(4), [0x66, 0x74, 0x79, 0x70])) return false
+  const brand = String.fromCharCode(...bytes.slice(8, 12))
+  return allowedBrands.includes(brand)
+}
+
 export function hasAllowedFileSignature(
   mimeType: string,
   bytes: Uint8Array,
@@ -68,6 +77,9 @@ export function hasAllowedFileSignature(
     'image/webp': (input) =>
       startsWith(input, [0x52, 0x49, 0x46, 0x46]) &&
       startsWith(input.slice(8), [0x57, 0x45, 0x42, 0x50]),
+    'image/heic': (input) => hasIsoBmffBrand(input, ['heic', 'heix', 'hevc', 'hevx']),
+    'image/heif': (input) => hasIsoBmffBrand(input, ['mif1', 'msf1', 'heic', 'heix']),
+    'image/avif': (input) => hasIsoBmffBrand(input, ['avif', 'avis']),
   }
 
   return mimeType in signatures

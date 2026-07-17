@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { notificationsApi } from './api/notifications'
 import {
   Bell,
@@ -12,16 +13,24 @@ import {
   Loader2
 } from 'lucide-react'
 
-export function NotificationCenter() {
+interface NotificationCenterProps {
+  userIdentity: string
+}
+
+export function NotificationCenter({ userIdentity }: NotificationCenterProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   // 1. Fetch notifications
   const { data: notifications = [], isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ['notifications'],
+    queryKey: ['notifications', userIdentity],
     queryFn: notificationsApi.listNotifications,
-    refetchInterval: 15000 // Poll every 15s to get live alerts in topbar
+    enabled: Boolean(userIdentity),
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+    refetchOnMount: 'always'
   })
 
   // 2. Mutations
@@ -90,25 +99,15 @@ export function NotificationCenter() {
         className="oh-icon-button oh-notification-button"
         type="button"
         aria-label={`Notifications, ${unreadCount} unread`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextOpen = !isOpen
+          setIsOpen(nextOpen)
+          if (nextOpen) void refetch()
+        }}
         style={{ position: 'relative' }}
       >
         <Bell size={20} />
-        {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '4px',
-              right: '4px',
-              width: '8px',
-              height: '8px',
-              background: 'var(--color-danger)',
-              borderRadius: '50%',
-              display: 'block'
-            }}
-            aria-hidden="true"
-          />
-        )}
+        {unreadCount > 0 && <span className="oh-notification-count" aria-hidden="true">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
 
       {isOpen && (
@@ -198,10 +197,10 @@ export function NotificationCenter() {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => {
-                      if (!n.is_read) {
-                        markAsReadMutation.mutate(n.id)
-                      }
+                    onClick={async () => {
+                      if (!n.is_read) await markAsReadMutation.mutateAsync(n.id)
+                      setIsOpen(false)
+                      if (n.action_path) navigate(n.action_path)
                     }}
                     style={{
                       display: 'flex',

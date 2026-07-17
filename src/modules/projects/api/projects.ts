@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
 import { getSupabaseClient } from '../../../lib/supabase/client'
+import { createPrivateDownloadUrl, createPrivateObjectPath } from '../../../lib/security/privateFiles'
+import { validatePrivateFileForUpload } from '../../../lib/security/filePolicy'
 import {
   createProjectCommandSchema,
   projectSchema,
@@ -73,7 +75,7 @@ export interface DailyUpdate {
   endorsed_at: string | null
   created_at: string
   updated_at: string
-  profiles_submitted_by?: { display_name: string }
+  profiles_submitted_by?: { display_name: string; role_name?: string }
   profiles_endorsed_by?: { display_name: string }
   projects?: { name: string }
 }
@@ -158,6 +160,8 @@ const exposedDatabaseMessages = new Set([
   'active primary PM assignment is required to manage coordinators',
   'active primary PM assignment is required to review the update',
   'active coordinator assignment is required',
+  'an active coordinator or primary PM assignment is required',
+  'the submitter cannot review their own daily update',
   'Project Managers must assign themselves as the primary PM',
   'primary PM candidate must hold the project_manager role',
   'project coordinator candidate must hold the coordinator role',
@@ -341,13 +345,9 @@ export const projectsApi = {
     return guardedApi.listAssignments(projectId, true)
   },
   async getDailyUpdates(projectId?: string): Promise<DailyUpdate[]> {
-    let query = getSupabaseClient()
-      .from('daily_updates')
-      .select('*, profiles_submitted_by:profiles!submitted_by(display_name), profiles_endorsed_by:profiles!endorsed_by(display_name), projects:project_id(name)')
-      .order('update_date', { ascending: false })
-      .order('created_at', { ascending: false })
-    if (projectId) query = query.eq('project_id', projectId)
-    const { data, error } = await query
+    const { data, error } = await getSupabaseClient().rpc('rpc_list_daily_updates', {
+      p_project_id: projectId || null,
+    })
     if (error) throw safeRequestError(error)
     return data as unknown as DailyUpdate[]
   },
@@ -372,6 +372,39 @@ export const projectsApi = {
       id: candidate.profileId,
       display_name: candidate.displayName,
     }))
+  },
+  async uploadDailyEvidence(projectId: string, files: File[]): Promise<string[]> {
+    if (files.length > 10) throw new Error('You can attach up to 10 photos to one daily update.')
+    const client = getSupabaseClient()
+    const { data: authData, error: authError } = await client.auth.getUser()
+    if (authError || !authData.user) throw new Error('Sign in again before uploading evidence.')
+    const paths: string[] = []
+    try {
+      for (const file of files) {
+        const validation = await validatePrivateFileForUpload(file)
+        if (!validation.ok || validation.extension === 'pdf') throw new Error('Use a JPG, PNG, WebP, HEIC, HEIF or AVIF photo no larger than 10 MB.')
+        const path = createPrivateObjectPath({ ownerId: authData.user.id, category: 'daily-evidence', recordId: projectId, extension: validation.extension })
+        const { error } = await client.storage.from('private-files').upload(path, file, { upsert: false, contentType: file.type })
+        if (error) throw error
+        paths.push(path)
+      }
+      return paths
+    } catch (error) {
+      if (paths.length) await client.storage.from('private-files').remove(paths)
+      throw error
+    }
+  },
+  async removeDailyEvidence(paths: string[]): Promise<void> {
+    if (!paths.length) return
+    const { error } = await getSupabaseClient().storage.from('private-files').remove(paths)
+    if (error) throw error
+  },
+  async createDailyEvidenceDownload(path: string): Promise<string> {
+    const client = getSupabaseClient()
+    return createPrivateDownloadUrl(path, {
+      allowedOrigin: new URL(import.meta.env.VITE_SUPABASE_URL).origin,
+      createSignedUrl: (objectPath, expiresIn) => client.storage.from('private-files').createSignedUrl(objectPath, expiresIn),
+    })
   },
 
   // Compatibility methods are RPC-backed and disappear with the legacy tabs.

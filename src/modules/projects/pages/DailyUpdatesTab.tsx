@@ -8,8 +8,8 @@ import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { Plus, RefreshCw, AlertTriangle, Calendar, Check, X, Image, Paperclip, Edit2 } from 'lucide-react'
-import { toSafeExternalUrl } from '../../../lib/security/safeUrl'
+import { Plus, RefreshCw, AlertTriangle, Calendar, Check, X, Edit2 } from 'lucide-react'
+import { DailyEvidenceGallery, DailyEvidenceInput } from '../components/DailyEvidenceInput'
 
 export function DailyUpdatesTab() {
   const queryClient = useQueryClient()
@@ -35,7 +35,7 @@ export function DailyUpdatesTab() {
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0])
   const [summary, setSummary] = useState('')
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
-  const [newPhotoUrl, setNewPhotoUrl] = useState('')
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [formError, setFormError] = useState('')
   const [submitStatus, setSubmitStatus] = useState<'draft' | 'submitted'>('submitted')
 
@@ -75,14 +75,20 @@ export function DailyUpdatesTab() {
 
   // Create update mutation
   const createUpdateMutation = useMutation({
-    mutationFn: () => {
-      return projectsApi.createDailyUpdate({
+    mutationFn: async () => {
+      const uploaded = await projectsApi.uploadDailyEvidence(projectId, photoFiles)
+      try {
+        return await projectsApi.createDailyUpdate({
         project_id: projectId,
         update_date: updateDate,
         summary,
-        photo_urls: photoUrls,
+        photo_urls: uploaded,
         status: submitStatus
       })
+      } catch (saveError) {
+        await projectsApi.removeDailyEvidence(uploaded)
+        throw saveError
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['daily-updates'] })
@@ -90,6 +96,7 @@ export function DailyUpdatesTab() {
       setProjectId('')
       setSummary('')
       setPhotoUrls([])
+      setPhotoFiles([])
       setCreateModalOpen(false)
       setFormError('')
     },
@@ -100,12 +107,18 @@ export function DailyUpdatesTab() {
 
   // Edit update mutation
   const editUpdateMutation = useMutation({
-    mutationFn: () => {
-      return projectsApi.updateDailyUpdate(selectedUpdate!.id, {
+    mutationFn: async () => {
+      const uploaded = await projectsApi.uploadDailyEvidence(selectedUpdate!.project_id, photoFiles)
+      try {
+        return await projectsApi.updateDailyUpdate(selectedUpdate!.id, {
         summary,
-        photo_urls: photoUrls,
+        photo_urls: [...photoUrls, ...uploaded],
         status: submitStatus
       })
+      } catch (saveError) {
+        await projectsApi.removeDailyEvidence(uploaded)
+        throw saveError
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['daily-updates'] })
@@ -113,6 +126,7 @@ export function DailyUpdatesTab() {
       setSelectedUpdate(null)
       setSummary('')
       setPhotoUrls([])
+      setPhotoFiles([])
       setEditModalOpen(false)
       setFormError('')
     },
@@ -181,27 +195,13 @@ export function DailyUpdatesTab() {
     }, 0)
   }
 
-  const addPhotoUrl = () => {
-    if (!newPhotoUrl.trim()) return
-    if (!newPhotoUrl.startsWith('http://') && !newPhotoUrl.startsWith('https://')) {
-      setFormError('Photo link must start with http:// or https://')
-      return
-    }
-    setPhotoUrls([...photoUrls, newPhotoUrl.trim()])
-    setNewPhotoUrl('')
-    setFormError('')
-  }
-
-  const removePhotoUrl = (idx: number) => {
-    setPhotoUrls(photoUrls.filter((_, i) => i !== idx))
-  }
-
   const openEditModal = (update: DailyUpdate) => {
     setSelectedUpdate(update)
     setProjectId(update.project_id)
     setUpdateDate(update.update_date)
     setSummary(update.summary)
     setPhotoUrls(update.photo_urls || [])
+    setPhotoFiles([])
     setFormError('')
     setEditModalOpen(true)
   }
@@ -255,7 +255,7 @@ export function DailyUpdatesTab() {
               setProjectId('')
               setSummary('')
               setPhotoUrls([])
-              setNewPhotoUrl('')
+              setPhotoFiles([])
               setFormError('')
               setCreateModalOpen(true)
             }} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
@@ -344,18 +344,7 @@ export function DailyUpdatesTab() {
                   {update.summary}
                 </p>
 
-                {update.photo_urls && update.photo_urls.length > 0 && (
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 'var(--space-2) 0' }}>
-                    {update.photo_urls.map((url, idx) => {
-                      const safeUrl = toSafeExternalUrl(url)
-                      return safeUrl ? (
-                        <a key={idx} href={safeUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', textDecoration: 'none', background: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-1) var(--space-2)', color: 'var(--color-primary)', fontSize: '0.8rem' }}>
-                          <Image size={13} /> Evidence {idx + 1}
-                        </a>
-                      ) : null
-                    })}
-                  </div>
-                )}
+                <DailyEvidenceGallery paths={update.photo_urls || []} />
 
                 {update.pm_feedback && (
                   <div style={{ borderLeft: '3px solid var(--color-border)', paddingLeft: 'var(--space-3)', background: 'var(--color-background)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--space-2)' }}>
@@ -371,7 +360,7 @@ export function DailyUpdatesTab() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-2)' }}>
                   <small style={{ color: 'var(--color-text-muted)' }}>
-                    Submitted by: <strong>{update.profiles_submitted_by?.display_name || 'Coordinator'}</strong>
+                    Submitted by: <strong>{update.profiles_submitted_by?.display_name || 'Unknown team member'} · {update.profiles_submitted_by?.role_name || 'Project Coordinator'}</strong>
                   </small>
 
                   {/* Endorsement Actions for PMs / CFOs */}
@@ -452,38 +441,7 @@ export function DailyUpdatesTab() {
             />
           </div>
 
-          <div className="oh-field" style={{ border: '1px solid var(--color-border)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'var(--color-background)' }}>
-            <label className="oh-field__label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-              <Paperclip size={14} /> Progress Evidence (Photo Links)
-            </label>
-
-            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-              <input
-                type="text"
-                className="oh-input"
-                value={newPhotoUrl}
-                onChange={(e) => setNewPhotoUrl(e.target.value)}
-                placeholder="Paste photo/image URL here..."
-                style={{ flex: 1 }}
-              />
-              <Button type="button" variant="secondary" onClick={addPhotoUrl}>
-                Add Link
-              </Button>
-            </div>
-
-            {photoUrls.length > 0 && (
-              <ul style={{ padding: 0, margin: 'var(--space-3) 0 0 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {photoUrls.map((url, idx) => (
-                  <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-2)' }}>
-                    <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px', fontFamily: 'monospace' }}>{url}</span>
-                    <Button type="button" variant="secondary" onClick={() => removePhotoUrl(idx)} style={{ padding: 'var(--space-1) var(--space-2)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)', fontSize: '0.75rem' }}>
-                      Remove
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <DailyEvidenceInput files={photoFiles} onFilesChange={setPhotoFiles} onError={setFormError} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
             <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)}>
@@ -530,38 +488,7 @@ export function DailyUpdatesTab() {
             />
           </div>
 
-          <div className="oh-field" style={{ border: '1px solid var(--color-border)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'var(--color-background)' }}>
-            <label className="oh-field__label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-              <Paperclip size={14} /> Progress Evidence (Photo Links)
-            </label>
-
-            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-              <input
-                type="text"
-                className="oh-input"
-                value={newPhotoUrl}
-                onChange={(e) => setNewPhotoUrl(e.target.value)}
-                placeholder="Paste photo/image URL here..."
-                style={{ flex: 1 }}
-              />
-              <Button type="button" variant="secondary" onClick={addPhotoUrl}>
-                Add Link
-              </Button>
-            </div>
-
-            {photoUrls.length > 0 && (
-              <ul style={{ padding: 0, margin: 'var(--space-3) 0 0 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {photoUrls.map((url, idx) => (
-                  <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-2)' }}>
-                    <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px', fontFamily: 'monospace' }}>{url}</span>
-                    <Button type="button" variant="secondary" onClick={() => removePhotoUrl(idx)} style={{ padding: 'var(--space-1) var(--space-2)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)', fontSize: '0.75rem' }}>
-                      Remove
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <DailyEvidenceInput files={photoFiles} existingPaths={photoUrls} onFilesChange={setPhotoFiles} onRemoveExisting={(path) => setPhotoUrls(photoUrls.filter((item) => item !== path))} onError={setFormError} />
 
           {selectedUpdate?.pm_feedback && (
             <div style={{ borderLeft: '3px solid var(--color-danger)', paddingLeft: 'var(--space-3)', background: 'var(--color-danger-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }}>

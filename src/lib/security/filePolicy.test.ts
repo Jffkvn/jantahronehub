@@ -19,6 +19,17 @@ describe('validatePrivateFile', () => {
   })
 
   it.each([
+    ['site-photo.heic', 'image/heic', 'heic'],
+    ['site-photo.heif', 'image/heif', 'heif'],
+    ['site-photo.avif', 'image/avif', 'avif'],
+  ])('accepts phone photo metadata for %s', (name, type, extension) => {
+    expect(validatePrivateFile({ name, type, size: 2_048 })).toEqual({
+      ok: true,
+      extension,
+    })
+  })
+
+  it.each([
     ['script.svg', 'image/svg+xml'],
     ['page.html', 'text/html'],
     ['payroll.xlsm', 'application/vnd.ms-excel.sheet.macroEnabled.12'],
@@ -72,6 +83,23 @@ describe('hasAllowedFileSignature', () => {
       hasAllowedFileSignature(
         'image/webp',
         new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]),
+      ),
+    ).toBe(true)
+  })
+
+  it.each([
+    ['image/heic', 'heic'],
+    ['image/heif', 'mif1'],
+    ['image/avif', 'avif'],
+  ])('recognizes an ISO-BMFF %s signature', (mimeType, brand) => {
+    expect(
+      hasAllowedFileSignature(
+        mimeType,
+        new Uint8Array([
+          0, 0, 0, 24,
+          0x66, 0x74, 0x79, 0x70,
+          ...Array.from(brand).map((character) => character.charCodeAt(0)),
+        ]),
       ),
     ).toBe(true)
   })

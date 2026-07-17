@@ -1,4 +1,12 @@
 import { getSupabaseClient } from '../../../lib/supabase/client'
+import { createPrivateDownloadUrl, createPrivateObjectPath } from '../../../lib/security/privateFiles'
+
+const receiptExtensions = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp'
+} as const
 
 export interface CashAdvanceRequest {
   id: string
@@ -38,6 +46,7 @@ export interface CashAdvanceRequest {
   profiles_closed_by?: {
     display_name: string
   }
+  requester_role?: string
 }
 
 export interface CashAdvanceExpense {
@@ -90,18 +99,7 @@ export interface ProjectOption {
 export const cashApi = {
   getRequests: async (): Promise<CashAdvanceRequest[]> => {
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase
-      .from('cash_advance_requests')
-      .select(`
-        *,
-        projects (name),
-        profiles_user: user_id (display_name),
-        profiles_entered_by: entered_by (display_name),
-        profiles_approved_by: approved_by (display_name),
-        profiles_disbursed_by: disbursed_by (display_name),
-        profiles_closed_by: closed_by (display_name)
-      `)
-      .order('requested_at', { ascending: false })
+    const { data, error } = await supabase.rpc('rpc_list_cash_advances', { p_request_id: null })
 
     if (error) throw error
     return (data as unknown as CashAdvanceRequest[]) || []
@@ -109,22 +107,10 @@ export const cashApi = {
 
   getRequest: async (id: string): Promise<CashAdvanceRequest | null> => {
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase
-      .from('cash_advance_requests')
-      .select(`
-        *,
-        projects (name),
-        profiles_user: user_id (display_name),
-        profiles_entered_by: entered_by (display_name),
-        profiles_approved_by: approved_by (display_name),
-        profiles_disbursed_by: disbursed_by (display_name),
-        profiles_closed_by: closed_by (display_name)
-      `)
-      .eq('id', id)
-      .maybeSingle()
+    const { data, error } = await supabase.rpc('rpc_list_cash_advances', { p_request_id: id })
 
     if (error) throw error
-    return data as unknown as CashAdvanceRequest
+    return ((data || []) as unknown as CashAdvanceRequest[])[0] || null
   },
 
   getExpenses: async (advanceId: string): Promise<CashAdvanceExpense[]> => {
@@ -220,11 +206,32 @@ export const cashApi = {
     amount: number,
     vendor: string,
     explanation: string,
-    receiptUrl: string | null,
+    receiptFile: File | null,
     receiptUnavailable: boolean,
     receiptUnavailableExplanation: string | null
   ): Promise<string> => {
     const supabase = getSupabaseClient()
+    let receiptPath: string | null = null
+    if (!receiptUnavailable) {
+      if (!receiptFile) throw new Error('Upload the receipt, invoice or voucher document.')
+      const extension = receiptExtensions[receiptFile.type as keyof typeof receiptExtensions]
+      if (!extension || receiptFile.size > 10 * 1024 * 1024) {
+        throw new Error('Use a PDF, JPG, PNG or WebP receipt up to 10 MB.')
+      }
+      const { data: userResult } = await supabase.auth.getUser()
+      if (!userResult.user) throw new Error('Sign in again to upload receipt evidence.')
+      receiptPath = createPrivateObjectPath({
+        ownerId: userResult.user.id,
+        category: 'cash-receipts',
+        recordId: advanceId,
+        extension
+      })
+      const stored = await supabase.storage.from('private-files').upload(receiptPath, receiptFile, {
+        upsert: false,
+        contentType: receiptFile.type
+      })
+      if (stored.error) throw stored.error
+    }
     const { data, error } = await supabase
       .rpc('rpc_submit_cash_expense', {
         p_advance_id: advanceId,
@@ -233,13 +240,25 @@ export const cashApi = {
         p_amount: amount,
         p_vendor: vendor,
         p_explanation: explanation,
-        p_receipt_url: receiptUrl,
+        p_receipt_url: receiptPath,
         p_receipt_unavailable: receiptUnavailable,
         p_receipt_unavailable_explanation: receiptUnavailableExplanation
       })
 
-    if (error) throw error
+    if (error) {
+      if (receiptPath) await supabase.storage.from('private-files').remove([receiptPath])
+      throw error
+    }
     return data as string
+  },
+
+  createReceiptDownload: async (receiptPath: string): Promise<string> => {
+    const supabaseUrl = new URL(import.meta.env.VITE_SUPABASE_URL)
+    return createPrivateDownloadUrl(receiptPath, {
+      allowedOrigin: supabaseUrl.origin,
+      createSignedUrl: (path, expiresIn) =>
+        getSupabaseClient().storage.from('private-files').createSignedUrl(path, expiresIn)
+    })
   },
 
   reviewExpense: async (expenseId: string, accept: boolean, rejectionReason: string | null): Promise<void> => {

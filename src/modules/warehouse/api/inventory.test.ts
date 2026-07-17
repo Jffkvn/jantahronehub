@@ -13,7 +13,6 @@ describe('inventory API project links', () => {
       consumable_item_id: null,
       equipment_asset_id: '22222222-2222-4222-8222-222222222222',
       quantity: 1,
-      estimated_unit_price: 500000,
       expected_return_date: '2026-08-31',
     }]
 

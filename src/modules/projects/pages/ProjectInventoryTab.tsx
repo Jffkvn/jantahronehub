@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, Boxes, ClipboardList, PackageCheck } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Boxes, ClipboardList, PackageCheck, PackageMinus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { projectSummariesApi } from '../api/projectSummaries'
@@ -27,7 +27,7 @@ export function ProjectInventoryTab({ projectId, compact = false }: { projectId:
         <div><ClipboardList size={17} /><span>Pending requests</span><strong>{inventory.pendingRequestCount}</strong></div>
         <div><PackageCheck size={17} /><span>Issued value</span><strong>{money.format(inventory.issuedEstimatedValue)}</strong></div>
         <div><Boxes size={17} /><span>Active custody</span><strong>{inventory.activeEquipmentCustodyCount}</strong></div>
-        <div><span>Issued consumables</span><strong>{inventory.issuedConsumableQuantity}</strong></div>
+        <div><PackageMinus size={17} /><span>Issued consumables</span><strong>{inventory.issuedConsumableQuantity}</strong></div>
       </div>
       {!compact && (inventory.overdueReturnCount || inventory.damagedOrLostReturnCount || inventory.unresolvedLegacyLinkCount) ? (
         <p className="oh-ledger-warning"><AlertTriangle size={16} /> {inventory.overdueReturnCount} overdue return(s); {inventory.damagedOrLostReturnCount} damaged/lost return(s); {inventory.unresolvedLegacyLinkCount} legacy link(s) need reconciliation.</p>

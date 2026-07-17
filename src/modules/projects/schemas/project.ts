@@ -102,12 +102,17 @@ export const updateProjectCommandSchema = z.object({
   reason: z.string().trim().min(3).max(500),
 })
 
+const dailyEvidenceReferenceSchema = z.union([
+  z.url(),
+  z.string().regex(/^[0-9a-f-]{36}\/daily-evidence\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:jpe?g|png|webp|heic|heif|avif)$/i),
+])
+
 export const saveDailyUpdateCommandSchema = z.object({
   updateId: z.uuid().nullable(),
   projectId: z.uuid(),
   updateDate: z.iso.date(),
   summary: z.string().trim().min(1),
-  photoUrls: z.array(z.url()).default([]),
+  photoUrls: z.array(dailyEvidenceReferenceSchema).max(10).default([]),
   submit: z.boolean(),
 })
 
@@ -115,7 +120,7 @@ export const dailyUpdateSchema = z.object({
   project_id: z.uuid(),
   update_date: z.iso.date(),
   summary: z.string().trim().min(1),
-  photo_urls: z.array(z.url()).default([]),
+  photo_urls: z.array(dailyEvidenceReferenceSchema).max(10).default([]),
   status: z.enum(['draft', 'submitted']).default('submitted'),
   pm_feedback: z.string().trim().optional().nullable(),
 })

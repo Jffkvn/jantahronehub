@@ -76,7 +76,7 @@ export function ProjectWorkspacePage({
           <StatusBadge tone={project.health_status === 'at_risk' ? 'danger' : project.health_status === 'needs_attention' ? 'warning' : 'success'}>
             {project.health_status.replace('_', ' ')}
           </StatusBadge>
-          <ProjectStatusDialog projectId={projectId} />
+          <ProjectStatusDialog projectId={projectId} currentStatus={project.status} />
         </div>
       </header>
       <nav className="oh-project-tabs" aria-label="Project workspace">

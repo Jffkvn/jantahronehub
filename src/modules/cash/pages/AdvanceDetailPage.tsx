@@ -36,7 +36,7 @@ export function AdvanceDetailPage() {
   const [expenseAmount, setExpenseAmount] = useState('')
   const [vendor, setVendor] = useState('')
   const [explanation, setExplanation] = useState('')
-  const [receiptUrl, setReceiptUrl] = useState('')
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
   const [receiptUnavailable, setReceiptUnavailable] = useState(false)
   const [receiptUnavailableExplanation, setReceiptUnavailableExplanation] = useState('')
 
@@ -147,7 +147,7 @@ export function AdvanceDetailPage() {
         numAmount,
         vendor,
         explanation,
-        receiptUrl || null,
+        receiptFile,
         receiptUnavailable,
         receiptUnavailable ? receiptUnavailableExplanation : null
       )
@@ -159,7 +159,7 @@ export function AdvanceDetailPage() {
       setExpenseAmount('')
       setVendor('')
       setExplanation('')
-      setReceiptUrl('')
+      setReceiptFile(null)
       setReceiptUnavailable(false)
       setReceiptUnavailableExplanation('')
       setActionError('')
@@ -214,6 +214,17 @@ export function AdvanceDetailPage() {
       setActionError(err.message || 'Failed to close advance.')
     }
   })
+
+  async function openReceipt(path: string) {
+    try {
+      const legacyUrl = toSafeExternalUrl(path)
+      const url = legacyUrl ?? await cashApi.createReceiptDownload(path)
+      const opened = window.open(url, '_blank', 'noopener,noreferrer')
+      if (opened) opened.opener = null
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Receipt document could not be opened.')
+    }
+  }
 
   if (isLoadingRequest) {
     return <div style={{ padding: 'var(--space-8)', textAlign: 'center' }}>Loading advance details...</div>
@@ -276,6 +287,10 @@ export function AdvanceDetailPage() {
     }
     if (!explanation.trim()) {
       setActionError('Explanation is required')
+      return
+    }
+    if (!receiptUnavailable && !receiptFile) {
+      setActionError('Upload the receipt, invoice or voucher document.')
       return
     }
     if (receiptUnavailable && (!receiptUnavailableExplanation || !receiptUnavailableExplanation.trim())) {
@@ -427,10 +442,10 @@ export function AdvanceDetailPage() {
                                 <AlertTriangle size={12} /> RECEIPT UNAVAILABLE: {exp.receipt_unavailable_explanation}
                               </span>
                             ) : (
-                              exp.receipt_url && toSafeExternalUrl(exp.receipt_url) && (
-                                <a href={toSafeExternalUrl(exp.receipt_url) ?? undefined} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                              exp.receipt_url && (
+                                <button type="button" onClick={() => void openReceipt(exp.receipt_url!)} className="oh-button-link" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
                                   <Image size={12} /> View Receipt
-                                </a>
+                                </button>
                               )
                             )}
                           </td>
@@ -801,12 +816,18 @@ export function AdvanceDetailPage() {
               />
             </div>
           ) : (
-            <Input
-              label="Receipt Evidence Link / URL"
-              value={receiptUrl}
-              onChange={(e) => setReceiptUrl(e.target.value)}
-              placeholder="e.g. https://supabase.storage/receipts/txn_002.jpg"
-            />
+            <div className="oh-field">
+              <label className="oh-field__label" htmlFor="expenseReceipt">Receipt / invoice document *</label>
+              <input
+                id="expenseReceipt"
+                className="oh-input"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                required
+                onChange={(event) => setReceiptFile(event.target.files?.[0] ?? null)}
+              />
+              <small>PDF, JPG, PNG or WebP, up to 10 MB. Stored privately.</small>
+            </div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>

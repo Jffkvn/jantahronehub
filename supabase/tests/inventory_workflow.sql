@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(72);
+select plan(96);
 
 -- 1. Table existence checks
 select has_table('public', 'warehouses', 'warehouses table exists');
@@ -18,6 +18,11 @@ select has_table('public', 'stock_movements', 'stock_movements table exists');
 select has_table('public', 'asset_returns', 'asset_returns table exists');
 select has_table('public', 'damage_reports', 'damage_reports table exists');
 select has_table('public', 'asset_custody', 'asset_custody table exists');
+select has_column('public', 'stock_receipts', 'supplier_name', 'stock receipts capture supplier');
+select has_column('public', 'stock_receipts', 'invoice_number', 'stock receipts capture supplier invoice');
+select has_column('public', 'stock_receipts', 'received_date', 'stock receipts capture the physical received date');
+select has_column('public', 'stock_receipts', 'purchase_value', 'stock receipts capture purchase value');
+select has_column('public', 'warehouses', 'code', 'warehouses have a stable operational code');
 
 -- 2. Function presence checks
 select has_function('public', 'rpc_receive_stock', array['uuid', 'text', 'jsonb'], 'rpc_receive_stock function exists');
@@ -28,6 +33,12 @@ select has_function('public', 'rpc_return_asset', array['uuid', 'text', 'uuid', 
 select has_function('public', 'rpc_adjust_stock', array['uuid', 'uuid', 'uuid', 'integer', 'text'], 'rpc_adjust_stock function exists');
 select has_function('public', 'rpc_issue_request_item', array['uuid', 'uuid', 'text'], 'rpc_issue_request_item function exists');
 select has_function('public', 'rpc_transfer_asset_custody', array['uuid', 'uuid', 'text', 'text'], 'rpc_transfer_asset_custody function exists');
+select has_function('public', 'rpc_create_consumable_item', 'singular consumable master creation exists');
+select has_function('public', 'rpc_receive_consumable', 'new and existing consumable receiving exists');
+select has_function('public', 'rpc_receive_new_equipment', 'singular equipment receiving exists');
+select has_function('public', 'rpc_create_consumable_item_inline', 'item master accepts an existing or inline category');
+select has_function('public', 'rpc_receive_consumable_inline', 'consumable receipt accepts inline setup records');
+select has_function('public', 'rpc_receive_new_equipment_inline', 'equipment receipt accepts inline setup records');
 select table_privs_are(
   'public', 'asset_custody', 'authenticated', array['SELECT'],
   'authenticated clients can read but cannot directly mutate custody history'
@@ -231,7 +242,13 @@ select lives_ok(
 
 -- Store request ID
 reset role;
-create temp table test_request as select id, status from public.stock_requests limit 1;
+create temp table test_request as
+select id, status
+from public.stock_requests
+where requested_by = '60000000-0000-0000-0000-000000000003'
+  and project_name = 'Bridge Construction'
+order by created_at desc
+limit 1;
 grant select on test_request to authenticated;
 select is((select status from test_request), 'pending_approval', 'request starts in pending_approval state');
 
@@ -936,6 +953,120 @@ select results_eq(
       ('lost'::text, 'lost'::text)
   $$,
   'failed lifecycle receipts preserve every asset status'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select lives_ok(
+  format(
+    'select public.rpc_receive_consumable(null,%L,%L,%L,%L,5,%L,%L,%L,%L,current_date,12,25000)',
+    (select id from test_category), 'Fresh cable', 'FRESH-CABLE-001', 'metre',
+    (select id from test_warehouse), 'Cable Supplier Uganda', 'GRN-FRESH-001', 'INV-FRESH-001'
+  ),
+  'Warehouse Manager creates and receives a first-time consumable atomically'
+);
+
+reset role;
+select results_eq(
+  $$ select receipt.supplier_name, receipt.invoice_number, receipt.received_date, receipt.purchase_value
+     from public.stock_receipts receipt where receipt.reference_number = 'GRN-FRESH-001' $$,
+  $$ select 'Cable Supplier Uganda'::text, 'INV-FRESH-001'::text, current_date, 300000.00::numeric $$,
+  'first-time consumable receipt preserves supplier, invoice, date and total purchase value'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select lives_ok(
+  format(
+    'select public.rpc_receive_new_equipment(%L,%L,%L,false,%L,%L,%L,%L,%L,current_date,1800000)',
+    (select id from test_category), 'Cable analyser', 'EQ-FRESH-001', 'New and inspected',
+    (select id from test_warehouse), 'Test Tools Uganda', 'GRN-EQ-FRESH-001', 'INV-EQ-FRESH-001'
+  ),
+  'Warehouse Manager creates and receives a serialized equipment asset atomically'
+);
+
+reset role;
+select results_eq(
+  $$ select asset.status, asset.current_warehouse_id, receipt.purchase_value
+     from public.equipment_assets asset
+     join public.stock_receipt_items line on line.equipment_asset_id = asset.id
+     join public.stock_receipts receipt on receipt.id = line.receipt_id
+     where asset.serial_number = 'EQ-FRESH-001' $$,
+  $$ select 'available'::text, (select id from test_warehouse), 1800000.00::numeric $$,
+  'new equipment is available at the receiving warehouse with its purchase value'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select lives_ok(
+  $$ select public.rpc_receive_consumable_inline(
+    null, null, 'Inline fibre', 'Created from the receiving form',
+    'Inline fibre patch lead', 'INLINE-FIBRE-001', 'unit', 4,
+    null, 'ENT-01', 'Entebbe Field Store', 'Entebbe',
+    'Inline Supplier', 'GRN-INLINE-001', 'INV-INLINE-001', current_date, 6, 45000
+  ) $$,
+  'Warehouse Manager creates missing category and warehouse inside a new-item receipt'
+);
+
+reset role;
+select is(
+  (select count(*)::bigint from public.item_categories where name = 'Inline fibre'),
+  1::bigint,
+  'inline receipt creates one category'
+);
+select results_eq(
+  $$ select code, name, location, status from public.warehouses where code = 'ENT-01' $$,
+  $$ values ('ENT-01'::text, 'Entebbe Field Store'::text, 'Entebbe'::text, 'active'::text) $$,
+  'inline receipt creates an active warehouse with code and location'
+);
+select results_eq(
+  $$ select item.sku, category.name, warehouse.code, movement.quantity
+     from public.consumable_items item
+     join public.item_categories category on category.id = item.category_id
+     join public.stock_movements movement on movement.consumable_item_id = item.id
+     join public.warehouses warehouse on warehouse.id = movement.warehouse_id
+     where item.sku = 'INLINE-FIBRE-001' $$,
+  $$ values ('INLINE-FIBRE-001'::text, 'Inline fibre'::text, 'ENT-01'::text, 6) $$,
+  'inline setup is linked to the received item and stock movement'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select throws_ok(
+  $$ select public.rpc_create_consumable_item_inline(
+    null, 'Inline fibre', 'Duplicate category', 'Duplicate item', 'INLINE-DUP-001', 'unit', 0
+  ) $$,
+  '23505',
+  'category name already exists',
+  'inline category names cannot be duplicated'
+);
+select throws_ok(
+  $$ select public.rpc_receive_consumable_inline(
+    null, (select id from public.item_categories where name = 'Inline fibre'), null, null,
+    'Duplicate warehouse item', 'INLINE-DUP-002', 'unit', 0,
+    null, 'ENT-01', 'Duplicate warehouse', 'Another location',
+    'Inline Supplier', 'GRN-INLINE-002', 'INV-INLINE-002', current_date, 1, 1
+  ) $$,
+  '23505',
+  'warehouse code already exists',
+  'inline warehouse codes cannot be duplicated'
+);
+reset role;
+select is(
+  (select count(*)::bigint from public.consumable_items where sku in ('INLINE-DUP-001', 'INLINE-DUP-002')),
+  0::bigint,
+  'failed inline setup does not leave orphan item records'
+);
+select is(
+  (select count(*)::bigint from public.warehouses where code = 'ENT-01'),
+  1::bigint,
+  'failed inline setup does not duplicate the warehouse'
+);
+select is(
+  (select count(*)::bigint from public.stock_receipts where reference_number in ('GRN-INLINE-002')),
+  0::bigint,
+  'failed inline setup does not leave an orphan receipt'
 );
 
 do $$

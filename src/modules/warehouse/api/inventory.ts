@@ -2,6 +2,7 @@ import { getSupabaseClient } from '../../../lib/supabase/client'
 
 export interface Warehouse {
   id: string;
+  code: string;
   name: string;
   location: string | null;
   status: 'active' | 'inactive';
@@ -52,6 +53,8 @@ export interface StockRequest {
   updated_at: string;
   profiles_requested_by?: { display_name: string };
   profiles_approved_by?: { display_name: string };
+  requester_name?: string;
+  requester_role?: string;
 }
 
 export interface StockRequestItem {
@@ -97,11 +100,29 @@ export interface StockReceiptInputItem {
   unit_price: number
 }
 
+export interface ConsumableMasterInput {
+  categoryId: string
+  newCategoryName: string
+  newCategoryDescription: string
+  name: string
+  sku: string
+  unitOfMeasure: string
+  reorderLevel: number
+}
+
+export interface ReceiptEvidenceInput {
+  warehouseId: string
+  supplierName: string
+  grnNumber: string
+  invoiceNumber: string
+  receivedDate: string
+  purchaseValue: number
+}
+
 export interface StockRequestInputItem {
   consumable_item_id: string | null
   equipment_asset_id: string | null
   quantity: number
-  estimated_unit_price: number
   expected_return_date?: string | null
 }
 
@@ -205,12 +226,19 @@ export const inventoryApi = {
   },
 
   async listRequests(): Promise<StockRequest[]> {
-    const { data, error } = await getSupabaseClient()
-      .from('stock_requests')
-      .select('*, profiles_requested_by:profiles!requested_by(display_name), profiles_approved_by:profiles!approved_by(display_name)')
-      .order('created_at', { ascending: false })
+    const { data, error } = await getSupabaseClient().rpc('rpc_list_stock_requests', {
+      p_request_id: null,
+    })
     if (error) throw error
     return (data || []) as unknown as StockRequest[]
+  },
+
+  async getRequest(requestId: string): Promise<StockRequest | null> {
+    const { data, error } = await getSupabaseClient().rpc('rpc_list_stock_requests', {
+      p_request_id: requestId,
+    })
+    if (error) throw error
+    return ((data || []) as unknown as StockRequest[])[0] || null
   },
 
   async getRequestItems(requestId: string): Promise<StockRequestItem[]> {
@@ -257,6 +285,55 @@ export const inventoryApi = {
     })
     if (error) throw error
     return data as string;
+  },
+
+  async createConsumableItem(item: ConsumableMasterInput): Promise<string> {
+    const creatingCategory = item.categoryId === '__new__'
+    const { data, error } = await getSupabaseClient().rpc('rpc_create_consumable_item_inline', {
+      p_category_id: creatingCategory ? null : item.categoryId,
+      p_category_name: creatingCategory ? item.newCategoryName : null,
+      p_category_description: creatingCategory ? item.newCategoryDescription : null,
+      p_name: item.name, p_sku: item.sku,
+      p_unit_of_measure: item.unitOfMeasure, p_reorder_level: item.reorderLevel
+    })
+    if (error) throw error
+    return data as string
+  },
+
+  async receiveConsumable(itemId: string | null, item: ConsumableMasterInput | null, receipt: ReceiptEvidenceInput, quantity: number): Promise<void> {
+    const creatingCategory = item?.categoryId === '__new__'
+    const { error } = await getSupabaseClient().rpc('rpc_receive_consumable_inline', {
+      p_item_id: itemId, p_category_id: creatingCategory ? null : item?.categoryId ?? null,
+      p_category_name: creatingCategory ? item?.newCategoryName : null,
+      p_category_description: creatingCategory ? item?.newCategoryDescription : null,
+      p_name: item?.name ?? null,
+      p_sku: item?.sku ?? null, p_unit_of_measure: item?.unitOfMeasure ?? null,
+      p_reorder_level: item?.reorderLevel ?? 0, p_warehouse_id: receipt.warehouseId,
+      p_warehouse_code: null, p_warehouse_name: null, p_warehouse_location: null,
+      p_supplier_name: receipt.supplierName, p_grn_number: receipt.grnNumber,
+      p_invoice_number: receipt.invoiceNumber, p_received_date: receipt.receivedDate,
+      p_quantity: quantity, p_unit_price: receipt.purchaseValue
+    })
+    if (error) throw error
+  },
+
+  async receiveNewEquipment(asset: {
+    categoryId: string; newCategoryName: string; newCategoryDescription: string
+    modelName: string; serialNumber: string; isSensitive: boolean; conditionNotes: string
+  }, receipt: ReceiptEvidenceInput): Promise<void> {
+    const creatingCategory = asset.categoryId === '__new__'
+    const { error } = await getSupabaseClient().rpc('rpc_receive_new_equipment_inline', {
+      p_category_id: creatingCategory ? null : asset.categoryId,
+      p_category_name: creatingCategory ? asset.newCategoryName : null,
+      p_category_description: creatingCategory ? asset.newCategoryDescription : null,
+      p_model_name: asset.modelName, p_serial_number: asset.serialNumber,
+      p_is_sensitive: asset.isSensitive, p_condition_notes: asset.conditionNotes,
+      p_warehouse_id: receipt.warehouseId, p_supplier_name: receipt.supplierName,
+      p_warehouse_code: null, p_warehouse_name: null, p_warehouse_location: null,
+      p_grn_number: receipt.grnNumber, p_invoice_number: receipt.invoiceNumber,
+      p_received_date: receipt.receivedDate, p_purchase_value: receipt.purchaseValue
+    })
+    if (error) throw error
   },
 
   requestStock: guardedInventoryApi.requestStock,

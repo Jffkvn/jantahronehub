@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(64);
+select plan(71);
 
 -- Deterministic role fixtures. Every assertion below scopes its data by these IDs/codes.
 insert into auth.users (id, email)
@@ -17,7 +17,8 @@ values
   ('80000000-0000-0000-0000-000000000007', 'projects-coord2@example.invalid'),
   ('80000000-0000-0000-0000-000000000008', 'projects-super@example.invalid'),
   ('80000000-0000-0000-0000-000000000009', 'projects-hr@example.invalid'),
-  ('80000000-0000-0000-0000-000000000010', 'projects-coord3@example.invalid')
+  ('80000000-0000-0000-0000-000000000010', 'projects-coord3@example.invalid'),
+  ('82000000-0000-4000-8000-000000000002', 'projects-photo-coord@example.invalid')
 on conflict (id) do nothing;
 
 insert into public.profiles (id, display_name)
@@ -31,7 +32,8 @@ values
   ('80000000-0000-0000-0000-000000000007', 'Projects Coordinator Two'),
   ('80000000-0000-0000-0000-000000000008', 'Projects Super Admin'),
   ('80000000-0000-0000-0000-000000000009', 'Projects HR'),
-  ('80000000-0000-0000-0000-000000000010', 'Projects Coordinator Three')
+  ('80000000-0000-0000-0000-000000000010', 'Projects Coordinator Three'),
+  ('82000000-0000-4000-8000-000000000002', 'Projects Photo Coordinator')
 on conflict (id) do nothing;
 
 insert into public.user_roles (profile_id, role_id)
@@ -46,7 +48,8 @@ from (values
   ('80000000-0000-0000-0000-000000000007'::uuid, 'coordinator'::text),
   ('80000000-0000-0000-0000-000000000008'::uuid, 'super_admin'::text),
   ('80000000-0000-0000-0000-000000000009'::uuid, 'hr_admin'::text),
-  ('80000000-0000-0000-0000-000000000010'::uuid, 'coordinator'::text)
+  ('80000000-0000-0000-0000-000000000010'::uuid, 'coordinator'::text),
+  ('82000000-0000-4000-8000-000000000002'::uuid, 'coordinator'::text)
 ) assigned(profile_id, role_key)
 join public.roles role on role.key = assigned.role_key
 on conflict do nothing;
@@ -414,11 +417,95 @@ select lives_ok(
       (select id from public.projects where project_code = 'PM-OWN-001'),
       date '2026-08-02',
       'Mobilisation and setting out completed.',
-      array['https://evidence.test/project-photo.jpg'],
+      array[]::text[],
       true
     )
   $$,
   'assigned coordinator can submit a daily update'
+);
+select lives_ok(
+  $$
+    select public.rpc_save_daily_update(
+      null,
+      (select id from public.projects where project_code = 'PM-OWN-001'),
+      date '2026-08-02',
+      'A second field update for the same day.',
+      array[]::text[],
+      true
+    )
+  $$,
+  'assigned coordinator can submit a second separate update on the same day'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.daily_updates update_row
+    where update_row.project_id = (select id from public.projects where project_code = 'PM-OWN-001')
+      and update_row.submitted_by = '80000000-0000-0000-0000-000000000002'
+      and update_row.update_date = date '2026-08-02'
+  ),
+  2,
+  'both same-day coordinator updates remain as separate records'
+);
+reset role;
+insert into public.project_assignments (project_id, user_id, role_on_project, assigned_by, assignment_reason)
+select project.id, '82000000-0000-4000-8000-000000000002', 'coordinator', '80000000-0000-0000-0000-000000000001', 'Photo evidence acceptance fixture'
+from public.projects project
+where project.project_code = 'PM-OWN-001';
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"82000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+insert into storage.objects (bucket_id, name, owner_id)
+select
+  'private-files',
+  '82000000-0000-4000-8000-000000000002/daily-evidence/' || project.id::text || '/82000000-0000-4000-8000-000000000099.png',
+  '82000000-0000-4000-8000-000000000002'
+from public.projects project
+where project.project_code = 'PM-OWN-001';
+select lives_ok(
+  $$
+    select public.rpc_save_daily_update(
+      null,
+      (select id from public.projects where project_code = 'PM-OWN-001'),
+      date '2026-08-04',
+      'Photo-backed field update.',
+      array[
+        '82000000-0000-4000-8000-000000000002/daily-evidence/' ||
+        (select id::text from public.projects where project_code = 'PM-OWN-001') ||
+        '/82000000-0000-4000-8000-000000000099.png'
+      ],
+      true
+    )
+  $$,
+  'assigned coordinator can submit an update with private photo evidence'
+);
+select lives_ok(
+  $$
+    insert into storage.objects (bucket_id, name, owner_id)
+    select
+      'private-files',
+      '82000000-0000-4000-8000-000000000002/daily-evidence/' || project.id::text || '/82000000-0000-4000-8000-000000000098.heic',
+      '82000000-0000-4000-8000-000000000002'
+    from public.projects project
+    where project.project_code = 'PM-OWN-001'
+  $$,
+  'assigned coordinator can store private iPhone HEIC evidence'
+);
+select lives_ok(
+  $$
+    select public.rpc_save_daily_update(
+      null,
+      (select id from public.projects where project_code = 'PM-OWN-001'),
+      date '2026-08-05',
+      'iPhone HEIC photo-backed field update.',
+      array[
+        '82000000-0000-4000-8000-000000000002/daily-evidence/' ||
+        (select id::text from public.projects where project_code = 'PM-OWN-001') ||
+        '/82000000-0000-4000-8000-000000000098.heic'
+      ],
+      true
+    )
+  $$,
+  'assigned coordinator can submit an update with iPhone HEIC evidence'
 );
 select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
 select throws_ok(
@@ -433,11 +520,43 @@ select throws_ok(
     )
   $$,
   '42501',
-  'active coordinator assignment is required',
+  'an active coordinator or primary PM assignment is required',
   'coordinator cannot submit against an unassigned project'
 );
 
 select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+select lives_ok(
+  $$
+    select public.rpc_save_daily_update(
+      null,
+      (select id from public.projects where project_code = 'PM-OWN-001'),
+      date '2026-08-03',
+      'Primary PM site inspection completed.',
+      array[]::text[],
+      true
+    )
+  $$,
+  'assigned primary PM can submit a daily update'
+);
+select throws_ok(
+  $$
+    select public.rpc_review_daily_update(
+      (
+        select update.id
+        from public.daily_updates update
+        join public.projects project on project.id = update.project_id
+        where project.project_code = 'PM-OWN-001'
+          and update.submitted_by = '80000000-0000-0000-0000-000000000001'::uuid
+          and update.update_date = date '2026-08-03'
+      ),
+      'endorse',
+      null
+    )
+  $$,
+  '42501',
+  'the submitter cannot review their own daily update',
+  'PM cannot review their own field update'
+);
 select lives_ok(
   $$
     select public.rpc_review_daily_update(
@@ -447,6 +566,7 @@ select lives_ok(
         join public.projects project on project.id = update.project_id
         where project.project_code = 'PM-OWN-001'
           and update.update_date = date '2026-08-02'
+          and update.summary = 'Mobilisation and setting out completed.'
       ),
       'request_revision',
       'Add the labour count before endorsement.'
@@ -465,6 +585,7 @@ select throws_ok(
         join public.projects project on project.id = update.project_id
         where project.project_code = 'PM-OWN-001'
           and update.update_date = date '2026-08-02'
+          and update.summary = 'Mobilisation and setting out completed.'
       ),
       'endorse',
       null

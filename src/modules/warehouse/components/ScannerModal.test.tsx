@@ -33,8 +33,9 @@ vi.mock('../api/inventory', async (importOriginal) => {
 
 const warehouse = {
   id: 'warehouse-1',
-  name: 'Central Warehouse',
-  location: 'Kampala',
+  code: 'HQ-01',
+  name: 'Egypro HQ Warehouse',
+  location: 'Egypro HQ',
   status: 'active' as const,
   created_at: '2026-07-13T00:00:00Z',
 }

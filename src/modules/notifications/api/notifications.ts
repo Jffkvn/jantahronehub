@@ -8,6 +8,7 @@ export interface Notification {
   is_read: boolean
   category: 'general' | 'hr' | 'payroll' | 'warehouse' | 'project' | 'cash'
   created_at: string
+  action_path: string | null
 }
 
 export type NotificationCategory = Notification['category']
@@ -22,7 +23,7 @@ export const notificationsApi = {
   async listNotifications(): Promise<Notification[]> {
     const { data, error } = await getSupabaseClient()
       .from('notifications')
-      .select('id, recipient_profile_id, title, message, is_read, category, created_at')
+      .select('id, recipient_profile_id, title, message, is_read, category, created_at, action_path')
       .order('created_at', { ascending: false })
       .limit(50)
 

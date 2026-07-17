@@ -98,9 +98,9 @@ export function OverviewPage() {
       {/* KPI Metrics */}
       <section className="oh-kpi-band" aria-label="Inventory metrics">
         <article className="oh-kpi"><span className="oh-kpi__label">Warehouses</span><strong className="oh-kpi__value">{warehouses.data?.length ?? 0}</strong></article>
-        <article className="oh-kpi"><span className="oh-kpi__label">Consumable SKUs</span><strong className="oh-kpi__value">{consumables.data?.length ?? 0}</strong></article>
-        <article className="oh-kpi"><span className="oh-kpi__label">Active assets</span><strong className="oh-kpi__value oh-kpi__value--success">{equipment.data?.length ?? 0}</strong></article>
-        <article className="oh-kpi"><span className="oh-kpi__label">Pending approvals</span><strong className={`oh-kpi__value${pendingRequestsCount > 0 ? ' oh-kpi__value--warning' : ''}`}>{pendingRequestsCount}</strong></article>
+        <Link className="oh-kpi-link" to="/inventory/consumables"><article className="oh-kpi"><span className="oh-kpi__label">Consumable SKUs</span><strong className="oh-kpi__value">{consumables.data?.length ?? 0}</strong></article></Link>
+        <Link className="oh-kpi-link" to="/inventory/equipment"><article className="oh-kpi"><span className="oh-kpi__label">Active assets</span><strong className="oh-kpi__value oh-kpi__value--success">{equipment.data?.length ?? 0}</strong></article></Link>
+        <Link className="oh-kpi-link" to="/inventory/requests?status=pending_approval"><article className="oh-kpi"><span className="oh-kpi__label">Pending approvals</span><strong className={`oh-kpi__value${pendingRequestsCount > 0 ? ' oh-kpi__value--warning' : ''}`}>{pendingRequestsCount}</strong></article></Link>
       </section>
 
       <div className="oh-operational-split">

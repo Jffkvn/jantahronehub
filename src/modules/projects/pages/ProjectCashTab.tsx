@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Banknote, ReceiptText, Undo2, WalletCards } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { projectSummariesApi } from '../api/projectSummaries'
@@ -23,10 +23,10 @@ export function ProjectCashTab({ projectId, compact = false }: { projectId: stri
     <section className="oh-card oh-project-ledger-panel">
       <div className="oh-team-section-header"><div><h3>Cash reconciliation</h3><p>Calculated from the canonical Cash ledger.</p></div><Link to={`/cash?project=${projectId}`}>Open Cash <ArrowRight size={15} /></Link></div>
       <div className="oh-project-ledger-metrics">
-        <div><span>Disbursed</span><strong>{money.format(cash.disbursed)}</strong></div>
-        <div><span>Accepted expenses</span><strong>{money.format(cash.acceptedExpenses)}</strong></div>
-        <div><span>Returned</span><strong>{money.format(cash.returnedCash)}</strong></div>
-        <div><span>Outstanding</span><strong>{money.format(cash.outstandingBalance)}</strong></div>
+        <div><Banknote size={17} /><span>Disbursed</span><strong>{money.format(cash.disbursed)}</strong></div>
+        <div><ReceiptText size={17} /><span>Accepted expenses</span><strong>{money.format(cash.acceptedExpenses)}</strong></div>
+        <div><Undo2 size={17} /><span>Returned</span><strong>{money.format(cash.returnedCash)}</strong></div>
+        <div><WalletCards size={17} /><span>Outstanding</span><strong>{money.format(cash.outstandingBalance)}</strong></div>
       </div>
       {!compact && (cash.pendingAccountabilityCount || cash.receiptExceptionCount) ? (
         <p className="oh-ledger-warning"><AlertTriangle size={16} /> {cash.pendingAccountabilityCount} pending accountability item(s); {cash.receiptExceptionCount} receipt exception(s).</p>

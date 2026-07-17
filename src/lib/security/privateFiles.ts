@@ -6,7 +6,7 @@ const uuidPattern =
 const uuidExpression = new RegExp(`^${uuidPattern}$`, 'i')
 const categoryExpression = /^[a-z][a-z0-9-]{0,62}$/
 const privatePathExpression = new RegExp(
-  `^${uuidPattern}/[a-z][a-z0-9-]{0,62}/${uuidPattern}/${uuidPattern}\\.(?:pdf|jpe?g|png|webp)$`,
+  `^${uuidPattern}/[a-z][a-z0-9-]{0,62}/${uuidPattern}/${uuidPattern}\\.(?:pdf|jpe?g|png|webp|heic|heif|avif)$`,
   'i',
 )
 

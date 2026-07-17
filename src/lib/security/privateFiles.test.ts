@@ -36,6 +36,22 @@ describe('createPrivateObjectPath', () => {
 })
 
 describe('createPrivateDownloadUrl', () => {
+  it('allows a signed private download for an iPhone HEIC photo path', async () => {
+    const path = `${ownerId}/daily-evidence/${recordId}/${objectId}.heic`
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: {
+        signedUrl: 'https://example.supabase.co/storage/v1/object/sign/private-files/photo.heic?token=signed',
+      },
+      error: null,
+    })
+
+    await expect(createPrivateDownloadUrl(path, {
+      allowedOrigin: 'https://example.supabase.co',
+      createSignedUrl,
+    })).resolves.toContain('/storage/v1/object/sign/private-files/photo.heic')
+    expect(createSignedUrl).toHaveBeenCalledWith(path, 60)
+  })
+
   it('returns a short-lived signed URL from the configured Supabase origin', async () => {
     const createSignedUrl = vi.fn().mockResolvedValue({
       data: {

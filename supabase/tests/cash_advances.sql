@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(58);
+select plan(59);
 
 -- 1. Setup checks
 select has_table('public', 'cash_advance_requests', 'cash_advance_requests table exists');
@@ -157,6 +157,17 @@ select throws_ok(
   'V0001',
   'Validation: Explanation is mandatory for receipt-unavailable expenses',
   'Receipt-unavailable expense requires an explanation'
+);
+
+select throws_ok(
+  format(
+    'select public.rpc_submit_cash_expense(%L, current_date, %L, 50000, %L, %L, null, false, null)',
+    (select id from public.cash_advance_requests where purpose = 'Site supplies transport' limit 1),
+    'site_transport', 'Fuel Station', 'Fuel purchase'
+  ),
+  'V0001',
+  'Validation: A valid uploaded receipt document is required',
+  'expense with an available receipt requires an uploaded private document'
 );
 
 select lives_ok(
@@ -476,11 +487,12 @@ select set_config('request.jwt.claims', '{"sub":"80000000-0000-0000-0000-0000000
 
 select throws_ok(
   format(
-    'select public.rpc_submit_cash_expense(%L, current_date, %L, 125000.00, %L, %L, null, false, null)',
+    'select public.rpc_submit_cash_expense(%L, current_date, %L, 125000.00, %L, %L, null, true, %L)',
     (select advance_id from cash_invariant_targets where case_key = 'expense_limit'),
     'supplies',
     'Invariant Vendor',
-    'Expense exceeds available advance'
+    'Expense exceeds available advance',
+    'Test case has no receipt'
   ),
   '22023',
   'Validation: Expense amount exceeds outstanding cash advance balance',
@@ -498,8 +510,8 @@ select
     'Review Vendor',
     'Valid expense awaiting review',
     null,
-    false,
-    null
+    true,
+    'Test case has no receipt'
   )
 from cash_invariant_targets target
 where target.case_key = 'rejection_reason';

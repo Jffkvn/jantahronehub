@@ -7,9 +7,9 @@ import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
-import { toSafeExternalUrl } from '../../../lib/security/safeUrl'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { ArrowLeft, Edit2, AlertTriangle, Calendar, Check, X, Eye, Image } from 'lucide-react'
+import { ArrowLeft, Edit2, AlertTriangle, Calendar, Check, X, Eye } from 'lucide-react'
+import { DailyEvidenceGallery } from '../components/DailyEvidenceInput'
 
 export function ProjectDetailsTab() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -393,7 +393,7 @@ export function ProjectDetailsTab() {
                       {new Date(update.update_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </span>
                     <small style={{ color: 'var(--color-text-muted)', display: 'block', marginTop: 'var(--space-1)' }}>
-                      Submitted by: <strong>{update.profiles_submitted_by?.display_name || 'Coordinator'}</strong>
+                      Submitted by: <strong>{update.profiles_submitted_by?.display_name || 'Unknown team member'} · {update.profiles_submitted_by?.role_name || 'Project Coordinator'}</strong>
                     </small>
                   </div>
                   <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
@@ -417,18 +417,7 @@ export function ProjectDetailsTab() {
                   {update.summary}
                 </p>
 
-                {update.photo_urls && update.photo_urls.length > 0 && (
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 'var(--space-2) 0' }}>
-                    {update.photo_urls.map((url, idx) => {
-                      const safeUrl = toSafeExternalUrl(url)
-                      return safeUrl ? (
-                        <a key={idx} href={safeUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', textDecoration: 'none', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)', color: 'var(--color-primary)', fontSize: '0.875rem' }}>
-                          <Image size={15} /> Evidence {idx + 1}
-                        </a>
-                      ) : null
-                    })}
-                  </div>
-                )}
+                <DailyEvidenceGallery paths={update.photo_urls || []} />
 
                 {update.pm_feedback && (
                   <div style={{ borderLeft: '3px solid var(--color-border)', paddingLeft: 'var(--space-3)', background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', margin: 'var(--space-3) 0 0 0' }}>
@@ -680,18 +669,7 @@ export function ProjectDetailsTab() {
                     {rev.summary}
                   </div>
 
-                  {rev.photo_urls && rev.photo_urls.length > 0 && (
-                    <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap', margin: 'var(--space-2) 0' }}>
-                      {rev.photo_urls.map((url, i) => {
-                        const safeUrl = toSafeExternalUrl(url)
-                        return safeUrl ? (
-                          <a key={i} href={safeUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', textDecoration: 'none', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-1) var(--space-2)', color: 'var(--color-primary)', fontSize: '0.8rem' }}>
-                            <Image size={12} /> Image {i + 1}
-                          </a>
-                        ) : null
-                      })}
-                    </div>
-                  )}
+                  <DailyEvidenceGallery paths={rev.photo_urls || []} />
 
                   {rev.pm_feedback && (
                     <div style={{ borderLeft: '2px solid var(--color-border)', paddingLeft: 'var(--space-2)', background: 'var(--color-surface)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--space-2)' }}>

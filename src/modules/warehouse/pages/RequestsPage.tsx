@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { inventoryApi } from '../api/inventory'
 import { projectsApi } from '../../projects/api/projects'
 import { Button } from '../../../components/ui/Button'
@@ -20,7 +20,6 @@ export function RequestsPage() {
     consumable_item_id: string | null
     equipment_asset_id: string | null
     quantity: number
-    estimated_unit_price: number
     displayName: string
     expected_return_date: string | null
   }>>([])
@@ -29,7 +28,7 @@ export function RequestsPage() {
   const [itemType, setItemType] = useState<'consumable' | 'equipment'>('consumable')
   const [selectedItemId, setSelectedItemId] = useState('')
   const [qty, setQty] = useState(1)
-  const [price, setPrice] = useState(0)
+  const [searchParams] = useSearchParams()
   const [expectedReturnDate, setExpectedReturnDate] = useState('')
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -47,7 +46,6 @@ export function RequestsPage() {
         consumable_item_id: item.consumable_item_id,
         equipment_asset_id: item.equipment_asset_id,
         quantity: item.quantity,
-        estimated_unit_price: item.estimated_unit_price,
         expected_return_date: item.expected_return_date,
       }))
       return inventoryApi.requestStock(projectId!, itemsPayload)
@@ -67,7 +65,6 @@ export function RequestsPage() {
     setItemsList([])
     setSelectedItemId('')
     setQty(1)
-    setPrice(0)
     setExpectedReturnDate('')
     setErrorMsg('')
   }
@@ -102,7 +99,6 @@ export function RequestsPage() {
         consumable_item_id: consumableId,
         equipment_asset_id: equipmentId,
         quantity: qty,
-        estimated_unit_price: price,
         displayName,
         expected_return_date: itemType === 'equipment' ? expectedReturnDate || null : null,
       }
@@ -110,7 +106,6 @@ export function RequestsPage() {
 
     setSelectedItemId('')
     setQty(1)
-    setPrice(0)
     setExpectedReturnDate('')
   }
 
@@ -129,12 +124,13 @@ export function RequestsPage() {
       )
     }
 
-    if (selectedStatus) {
-      list = list.filter(r => r.status === selectedStatus)
+    const activeStatus = selectedStatus || searchParams.get('status') || ''
+    if (activeStatus) {
+      list = list.filter(r => r.status === activeStatus)
     }
 
     return list
-  }, [requests.data, search, selectedStatus])
+  }, [requests.data, search, selectedStatus, searchParams])
 
   return (
     <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
@@ -195,7 +191,7 @@ export function RequestsPage() {
               <tr key={req.id}>
                 <td style={{ fontSize: '0.85rem' }}>{new Date(req.created_at).toLocaleString()}</td>
                 <td><strong>{req.project_name}</strong></td>
-                <td>{req.profiles_requested_by?.display_name || 'Staff Member'}</td>
+                <td><strong>{req.requester_name || req.profiles_requested_by?.display_name || 'Unknown team member'}</strong><br /><span className="oh-table-subtext">{req.requester_role || 'Team member'}</span></td>
                 <td style={{ fontWeight: 700 }}>UGX {req.total_estimated_value.toLocaleString()}</td>
                 <td>
                   {req.escalated_to_cfo ? (
@@ -304,16 +300,6 @@ export function RequestsPage() {
                   onChange={(e) => setQty(Number(e.target.value))}
                 />
               </div>
-              <div style={{ flex: 2 }}>
-                <label className="oh-label" style={{ fontSize: '0.75rem' }}>Est. Unit Price (UGX)</label>
-                <input
-                  type="number"
-                  className="oh-input"
-                  min={0}
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                />
-              </div>
               {itemType === 'equipment' ? (
                 <div style={{ flex: 2 }}>
                   <label className="oh-label" style={{ fontSize: '0.75rem' }} htmlFor="request-expected-return">Expected return</label>
@@ -344,7 +330,7 @@ export function RequestsPage() {
                     <div>
                       <strong>{item.displayName}</strong>
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                        Qty: {item.quantity} · Est. Price: UGX {item.estimated_unit_price.toLocaleString()} each
+                        Qty: {item.quantity} · Value and approval routing are calculated from warehouse receipts
                         {item.expected_return_date ? ` · Return by ${item.expected_return_date}` : ''}
                       </div>
                     </div>

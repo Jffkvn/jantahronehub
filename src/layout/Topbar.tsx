@@ -51,7 +51,7 @@ export function Topbar({
           <span className="oh-sr-only">Search OneHub</span>
           <input type="search" placeholder="Search OneHub" />
         </label>
-        <NotificationCenter />
+        <NotificationCenter userIdentity={currentUser.email} />
         <div className="oh-user-summary">
           <span className="oh-user-summary__avatar" aria-hidden="true">{initials}</span>
           <span className="oh-user-summary__copy">
