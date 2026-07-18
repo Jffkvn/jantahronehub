@@ -55,7 +55,7 @@
 
 **Files:**
 - Create: `supabase/tests/performance_management.sql`
-- Create: `supabase/migrations/0090_performance_management.sql`
+- Create: `supabase/migrations/0091_performance_management.sql`
 - Create: `src/modules/hr/schemas/performance.test.ts`
 - Create: `src/modules/hr/schemas/performance.ts`
 - Create: `src/modules/hr/api/performance.test.ts`
@@ -82,7 +82,7 @@
 
 **Files:**
 - Create: `supabase/tests/training_certifications.sql`
-- Create: `supabase/migrations/0091_training_certifications.sql`
+- Create: `supabase/migrations/0092_training_certifications.sql`
 - Create: `src/modules/hr/schemas/training.test.ts`
 - Create: `src/modules/hr/schemas/training.ts`
 - Create: `src/modules/hr/api/training.test.ts`

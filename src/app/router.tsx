@@ -130,7 +130,7 @@ export function AppRouter() {
           <Route element={<ProtectedShell />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/my/*" element={<PortalPage />} />
-            <Route element={<RequirePermission anyOf={['employees.read', 'payroll.read']} />}>
+            <Route element={<RequirePermission anyOf={['employees.read', 'payroll.read', 'staff_advances.manage']} />}>
               <Route path="/hr/*" element={<HrPage />} />
             </Route>
             <Route element={<RequirePermission permission="inventory.read" />}>

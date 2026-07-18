@@ -31,6 +31,7 @@ export function PortalNav() {
     { to: '/my/profile', label: 'Profile' },
     { to: '/my/documents', label: 'Documents' },
     { to: '/my/leave', label: 'Leave' },
+    { to: '/my/advances', label: 'Advances' },
     { to: '/my/payslips', label: 'Payslips' },
   ]
 

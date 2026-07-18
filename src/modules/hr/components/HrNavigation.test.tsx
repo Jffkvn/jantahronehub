@@ -65,4 +65,15 @@ describe('HrNavigation', () => {
     expect(screen.getByRole('link', { name: 'Leave' })).toHaveAttribute('href', '/hr/leave')
     expect(screen.getByRole('link', { name: 'Leave' })).toHaveAttribute('aria-current', 'page')
   })
+
+  it('shows Staff Advances to HR users who can manage advances', () => {
+    render(
+      <MemoryRouter initialEntries={['/hr/staff-advances']}>
+        <HrNavigation permissions={['employees.read', 'staff_advances.manage']} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Staff Advances' })).toHaveAttribute('href', '/hr/staff-advances')
+    expect(screen.getByRole('link', { name: 'Staff Advances' })).toHaveAttribute('aria-current', 'page')
+  })
 })
