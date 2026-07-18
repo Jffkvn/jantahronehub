@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, IdCard, UserRound } from 'lucide-react'
+import { CalendarClock, CalendarDays, FileText, IdCard, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { StatusBadge } from '../../../components/ui/StatusBadge'
@@ -55,6 +55,10 @@ export function MyDashboardPage({ profile }: { profile: SelfServiceProfile | nul
         <Link className="oh-portal-action" to="/my/payslips">
           <FileText size={20} />
           <span>View payslips</span>
+        </Link>
+        <Link className="oh-portal-action" to="/my/leave">
+          <CalendarDays size={20} />
+          <span>Request leave</span>
         </Link>
       </section>
       <section className="oh-portal-panel">

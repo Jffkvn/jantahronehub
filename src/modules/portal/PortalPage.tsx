@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { selfServiceApi, type SelfServiceApi } from './api/selfService'
 import { MyDashboardPage } from './pages/MyDashboardPage'
 import { MyDocumentsPage } from './pages/MyDocumentsPage'
+import { MyLeavePage } from './pages/MyLeavePage'
 import { MyPayslipsPage } from './pages/MyPayslipsPage'
 import { MyProfilePage } from './pages/MyProfilePage'
 import { PortalNav } from './pages/shared'
@@ -71,6 +72,7 @@ export default function PortalPage({ api = selfServiceApi }: { api?: SelfService
           }
         />
         <Route path="payslips" element={<MyPayslipsPage api={api} runs={payslips.data ?? []} />} />
+        <Route path="leave" element={profile.data ? <MyLeavePage employeeId={profile.data.id} /> : <Navigate to="/my" replace />} />
         <Route path="*" element={<Navigate to="/my" replace />} />
       </Routes>
     </section>

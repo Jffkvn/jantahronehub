@@ -30,6 +30,7 @@ export function PortalNav() {
     { to: '/my', label: 'Overview', end: true },
     { to: '/my/profile', label: 'Profile' },
     { to: '/my/documents', label: 'Documents' },
+    { to: '/my/leave', label: 'Leave' },
     { to: '/my/payslips', label: 'Payslips' },
   ]
 

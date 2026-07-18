@@ -54,4 +54,15 @@ describe('HrNavigation', () => {
       'page',
     )
   })
+
+  it('shows Leave to HR users who can manage leave', () => {
+    render(
+      <MemoryRouter initialEntries={['/hr/leave']}>
+        <HrNavigation permissions={['employees.read', 'leave.manage']} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Leave' })).toHaveAttribute('href', '/hr/leave')
+    expect(screen.getByRole('link', { name: 'Leave' })).toHaveAttribute('aria-current', 'page')
+  })
 })

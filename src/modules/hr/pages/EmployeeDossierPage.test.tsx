@@ -4,6 +4,7 @@ import { expect, test, vi } from 'vitest'
 
 import { renderWithProviders } from '../../../test/render'
 import type { EmployeeApi } from '../api/employees'
+import type { LeaveApi } from '../api/leave'
 import { EmployeeDossierPage } from './EmployeeDossierPage'
 
 const employee = {
@@ -96,4 +97,16 @@ test('archives an employee only after a reason is supplied', async () => {
     'employee-1',
     'Duplicate employee record',
   ))
+})
+
+test('shows leave balances and history in the HR employee dossier', async () => {
+  const leave: LeaveApi = {
+    listTypes: vi.fn().mockResolvedValue([]), listMine: vi.fn().mockResolvedValue([]), listForHr: vi.fn().mockResolvedValue([]),
+    listBalances: vi.fn().mockResolvedValue([{ leaveTypeId: '11111111-1111-4111-8111-111111111111', leaveTypeCode: 'annual', leaveTypeName: 'Annual leave', entitledDays: 21, adjustmentDays: 0, usedDays: 3, remainingDays: 18, isPaid: true }]),
+    submit: vi.fn(), logForEmployee: vi.fn(), decide: vi.fn(), withdraw: vi.fn(), cancel: vi.fn(), adjustBalance: vi.fn(), listDocuments: vi.fn(), uploadDocuments: vi.fn(), removeDocument: vi.fn(), createDocumentDownload: vi.fn(),
+  }
+  renderWithProviders(<EmployeeDossierPage employeeId="employee-1" api={createApi()} leave={leave} permissions={['leave.manage']} />)
+  await userEvent.click(await screen.findByRole('button', { name: /^leave$/i }))
+  expect(await screen.findByText('18')).toBeInTheDocument()
+  expect(screen.getByText(/3 used of 21/i)).toBeInTheDocument()
 })

@@ -6,6 +6,7 @@ import { RequirePermission } from '../auth/RequirePermission'
 import { EmployeeDirectoryPage } from './pages/EmployeeDirectoryPage'
 import { EmployeeDossierPage } from './pages/EmployeeDossierPage'
 import { EmployeeImportPage } from './pages/EmployeeImportPage'
+import { LeaveManagementPage } from './pages/LeaveManagementPage'
 import { PayrollRunsPage } from '../payroll/pages/PayrollRunsPage'
 import { PayrollRunPage } from '../payroll/pages/PayrollRunPage'
 import { defaultHrPath } from './navigation'
@@ -23,9 +24,9 @@ const HrSetupPage = lazy(() =>
   }))
 )
 
-function EmployeeDossierRoute() {
+function EmployeeDossierRoute({ permissions }: { permissions: string[] }) {
   const { employeeId } = useParams()
-  return employeeId ? <EmployeeDossierPage employeeId={employeeId} /> : <Navigate to="/hr/employees" replace />
+  return employeeId ? <EmployeeDossierPage employeeId={employeeId} permissions={permissions} /> : <Navigate to="/hr/employees" replace />
 }
 
 function PayrollRunRoute({ permissions }: { permissions: string[] }) {
@@ -44,7 +45,7 @@ export default function HrPage() {
         <Route index element={<Navigate to={landingPath} replace />} />
         <Route element={<RequirePermission permission="employees.read" />}>
           <Route path="employees" element={<EmployeeDirectoryPage />} />
-          <Route path="employees/:employeeId" element={<EmployeeDossierRoute />} />
+          <Route path="employees/:employeeId" element={<EmployeeDossierRoute permissions={permissions} />} />
         </Route>
         <Route element={<RequirePermission allOf={['employees.read', 'employee_imports.manage']} />}>
           <Route path="employees/import" element={<EmployeeImportPage />} />
@@ -52,6 +53,9 @@ export default function HrPage() {
         <Route element={<RequirePermission permission="payroll.read" />}>
           <Route path="payroll" element={<PayrollRunsPage permissions={permissions} />} />
           <Route path="payroll/:runId" element={<PayrollRunRoute permissions={permissions} />} />
+        </Route>
+        <Route element={<RequirePermission permission="leave.manage" />}>
+          <Route path="leave" element={<LeaveManagementPage />} />
         </Route>
         <Route element={<RequirePermission permission="payroll.migrate_history" />}>
           <Route

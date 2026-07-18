@@ -1,7 +1,7 @@
 export type PayrollRunType = 'regular' | 'supplemental' | 'correction' | 'historical'
 export type PayrollStatus = 'draft' | 'approved'
 
-export interface PayrollLineItem { id?: string; kind: 'allowance' | 'salary_advance' | 'deduction'; code: string; description: string; amount: number }
+export interface PayrollLineItem { id?: string; kind: 'allowance' | 'salary_advance' | 'deduction' | 'proration'; code: string; description: string; amount: number }
 export interface PayrollItem {
   id: string; employeeId: string; employeeNumber: string; employeeName: string; taxTreatment: 'local' | 'global' | 'contractor' | 'exempt'; nssfApplicable: boolean;
   percentOfMonthWorked: number; contractualGross: number; proratedGross: number; overtimeHours: number; overtimeRate: number; overtimePay: number; allowances: number;

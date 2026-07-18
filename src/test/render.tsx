@@ -3,7 +3,7 @@ import { render, type RenderOptions } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 
-function TestProviders({ children }: { children: ReactNode }) {
+function TestProviders({ children, route = '/' }: { children: ReactNode; route?: string }) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -12,7 +12,7 @@ function TestProviders({ children }: { children: ReactNode }) {
   })
 
   return (
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[route]}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </MemoryRouter>
   )
@@ -20,7 +20,11 @@ function TestProviders({ children }: { children: ReactNode }) {
 
 export function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
+  options?: Omit<RenderOptions, 'wrapper'> & { route?: string },
 ) {
-  return render(ui, { wrapper: TestProviders, ...options })
+  const { route, ...renderOptions } = options ?? {}
+  return render(ui, {
+    wrapper: ({ children }) => <TestProviders route={route}>{children}</TestProviders>,
+    ...renderOptions,
+  })
 }

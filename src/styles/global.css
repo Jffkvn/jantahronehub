@@ -1227,6 +1227,40 @@ textarea {
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
+
+.oh-leave-balance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); }
+.oh-leave-balance { display: grid; gap: var(--space-2); padding: var(--space-5); }
+.oh-leave-balance > span, .oh-leave-balance > small { color: var(--color-text-muted); }
+.oh-leave-balance > strong { color: var(--color-navy-900); font-size: 2rem; }
+.oh-leave-calendar { padding: var(--space-5); overflow: hidden; }
+.oh-leave-calendar h2 { margin: 0; }
+.oh-leave-calendar__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.oh-leave-calendar__button { border: 0; background: transparent; color: var(--color-navy-700); cursor: pointer; padding: var(--space-2); }
+.oh-leave-legend { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); color: var(--color-text-muted); font-size: .8rem; }
+.oh-leave-legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.oh-leave-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.oh-leave-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.oh-leave-month-grid__weekday { padding: var(--space-3); text-align: center; color: var(--color-text-muted); background: var(--color-surface-subtle); font-size: .75rem; text-transform: uppercase; }
+.oh-leave-day { min-height: 108px; padding: var(--space-2); border-top: 1px solid var(--color-border); border-right: 1px solid var(--color-border); background: white; display: flex; flex-direction: column; gap: 4px; }
+.oh-leave-day:nth-child(7n) { border-right: 0; }
+.oh-leave-day--empty { background: var(--color-surface-subtle); }
+.oh-leave-day > b { color: var(--color-navy-900); }
+.oh-leave-day > span { border-left: 4px solid; border-radius: var(--radius-sm); background: var(--color-surface-subtle); padding: 4px 6px; overflow: hidden; font-size: .75rem; line-height: 1.2; }
+.oh-leave-day > span small { display: block; color: var(--color-text-muted); }
+.oh-leave-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+.oh-leave-kpis article { padding: var(--space-5); display: grid; gap: var(--space-1); }
+.oh-leave-kpis span { color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; font-size: .78rem; }
+.oh-leave-kpis strong { color: var(--color-navy-900); font-size: 2rem; }
+.oh-leave-kpis small { color: var(--color-text-muted); }
+.oh-leave-view-toggle { display: inline-flex; gap: var(--space-1); }
+@media (max-width: 900px) { .oh-leave-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .oh-leave-day { min-height: 80px; } }
+@media (max-width: 620px) { .oh-leave-kpis { grid-template-columns: 1fr; } .oh-leave-month-grid { min-width: 720px; } .oh-leave-calendar { overflow-x: auto; } }
+.oh-leave-calendar ul, .oh-leave-file-list { margin: 0; padding: 0; list-style: none; }
+.oh-leave-calendar li { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-top: 1px solid var(--color-border); }
+.oh-leave-calendar li span { display: grid; gap: var(--space-1); }
+.oh-leave-calendar small, .oh-leave-calendar p { color: var(--color-text-muted); }
+.oh-leave-file-list { display: grid; gap: var(--space-2); }
+.oh-leave-file-list li { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .oh-section-surface { padding: clamp(var(--space-4), 2.4vw, var(--space-6)); }
 .oh-section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
 .oh-section-header h2, .oh-section-header h3 { margin: 0; color: var(--color-navy-900); font-size: 1.05rem; letter-spacing: -0.01em; }

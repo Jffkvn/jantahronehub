@@ -1,4 +1,4 @@
-import { Banknote, History, Settings2, Users } from 'lucide-react'
+import { Banknote, CalendarDays, History, Settings2, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -17,6 +17,13 @@ const items: NavigationItem[] = [
     permission: 'employees.read',
     icon: <Users size={17} aria-hidden="true" />,
     active: (pathname) => pathname.startsWith('/hr/employees'),
+  },
+  {
+    label: 'Leave',
+    to: '/hr/leave',
+    permission: 'leave.manage',
+    icon: <CalendarDays size={17} aria-hidden="true" />,
+    active: (pathname) => pathname.startsWith('/hr/leave'),
   },
   {
     label: 'Payroll',
