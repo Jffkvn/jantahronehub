@@ -1,4 +1,4 @@
-import { Banknote, BarChart3, CalendarDays, History, Settings2, Users, WalletCards } from 'lucide-react'
+import { Banknote, BarChart3, BookOpen, CalendarDays, History, Settings2, Users, WalletCards } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -38,6 +38,13 @@ const items: NavigationItem[] = [
     permission: 'performance.manage',
     icon: <BarChart3 size={17} aria-hidden="true" />,
     active: (pathname) => pathname.startsWith('/hr/performance'),
+  },
+  {
+    label: 'Training',
+    to: '/hr/training',
+    permission: 'training.manage',
+    icon: <BookOpen size={17} aria-hidden="true" />,
+    active: (pathname) => pathname.startsWith('/hr/training'),
   },
   {
     label: 'Payroll',

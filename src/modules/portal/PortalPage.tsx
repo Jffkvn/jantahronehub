@@ -10,6 +10,7 @@ import { MyDocumentsPage } from './pages/MyDocumentsPage'
 import { MyAdvancesPage } from './pages/MyAdvancesPage'
 import { MyLeavePage } from './pages/MyLeavePage'
 import { MyPerformancePage } from './pages/MyPerformancePage'
+import { MyTrainingPage } from './pages/MyTrainingPage'
 import { MyPayslipsPage } from './pages/MyPayslipsPage'
 import { MyProfilePage } from './pages/MyProfilePage'
 import { PortalNav } from './pages/shared'
@@ -77,6 +78,7 @@ export default function PortalPage({ api = selfServiceApi }: { api?: SelfService
         <Route path="leave" element={profile.data ? <MyLeavePage employeeId={profile.data.id} /> : <Navigate to="/my" replace />} />
         <Route path="advances" element={<MyAdvancesPage />} />
         <Route path="performance" element={<MyPerformancePage />} />
+        <Route path="training" element={<MyTrainingPage />} />
         <Route path="*" element={<Navigate to="/my" replace />} />
       </Routes>
     </section>

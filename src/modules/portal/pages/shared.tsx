@@ -33,6 +33,7 @@ export function PortalNav() {
     { to: '/my/leave', label: 'Leave' },
     { to: '/my/advances', label: 'Advances' },
     { to: '/my/performance', label: 'Performance' },
+    { to: '/my/training', label: 'Training' },
     { to: '/my/payslips', label: 'Payslips' },
   ]
 

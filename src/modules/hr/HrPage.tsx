@@ -9,6 +9,7 @@ import { EmployeeImportPage } from './pages/EmployeeImportPage'
 import { LeaveManagementPage } from './pages/LeaveManagementPage'
 import { StaffAdvancesPage } from './pages/StaffAdvancesPage'
 import { PerformanceManagementPage } from './pages/PerformanceManagementPage'
+import { TrainingManagementPage } from './pages/TrainingManagementPage'
 import { PayrollRunsPage } from '../payroll/pages/PayrollRunsPage'
 import { PayrollRunPage } from '../payroll/pages/PayrollRunPage'
 import { defaultHrPath } from './navigation'
@@ -64,6 +65,9 @@ export default function HrPage() {
         </Route>
         <Route element={<RequirePermission permission="performance.manage" />}>
           <Route path="performance" element={<PerformanceManagementPage />} />
+        </Route>
+        <Route element={<RequirePermission permission="training.manage" />}>
+          <Route path="training" element={<TrainingManagementPage />} />
         </Route>
         <Route element={<RequirePermission permission="payroll.migrate_history" />}>
           <Route

@@ -102,7 +102,7 @@ test('shows the employee profile without HR confidential fields', async () => {
   expect(screen.queryByText(/\bTIN\b/i)).not.toBeInTheDocument()
   expect(screen.queryByText(/\bNSSF\b/i)).not.toBeInTheDocument()
   expect(screen.queryByText(/bank/i)).not.toBeInTheDocument()
-  expect(screen.queryByText(/nin|passport/i)).not.toBeInTheDocument()
+  expect(screen.queryByText(/\bNIN\b|\bPassport\b/i)).not.toBeInTheDocument()
 })
 
 test('lists employee-visible documents and opens a signed download', async () => {
