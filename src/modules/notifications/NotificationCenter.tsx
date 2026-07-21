@@ -59,6 +59,16 @@ export function NotificationCenter({ userIdentity }: NotificationCenterProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen])
+
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
   // Map category to Lucide Icon
@@ -77,7 +87,7 @@ export function NotificationCenter({ userIdentity }: NotificationCenterProps) {
       default:
         return <Bell className="text-neutral" size={16} />
     }
-  };
+  }
 
   const formatRelativeTime = (dateStr: string) => {
     try {
@@ -91,71 +101,44 @@ export function NotificationCenter({ userIdentity }: NotificationCenterProps) {
     } catch {
       return ''
     }
-  };
+  }
 
   return (
-    <div className="oh-notification-center" ref={dropdownRef} style={{ position: 'relative' }}>
+    <div className="oh-notification-center" ref={dropdownRef}>
       <button
         className="oh-icon-button oh-notification-button"
         type="button"
         aria-label={`Notifications, ${unreadCount} unread`}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
         onClick={() => {
           const nextOpen = !isOpen
           setIsOpen(nextOpen)
           if (nextOpen) void refetch()
         }}
-        style={{ position: 'relative' }}
       >
         <Bell size={20} />
-        {unreadCount > 0 && <span className="oh-notification-count" aria-hidden="true">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+        {unreadCount > 0 && (
+          <span className="oh-notification-count" aria-hidden="true">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {isOpen && (
         <div
-          className="oh-card"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + var(--space-2))',
-            right: 0,
-            width: '360px',
-            maxHeight: '440px',
-            zIndex: 999,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: 0,
-            boxShadow: 'var(--shadow-lg)',
-            border: '1px solid var(--color-border)',
-            overflow: 'hidden'
-          }}
+          className="oh-notification-panel"
+          role="dialog"
+          aria-label="Notifications"
         >
-          {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 'var(--space-3) var(--space-4)',
-              borderBottom: '1px solid var(--color-border)',
-              background: 'var(--color-background-subtle)'
-            }}
-          >
-            <strong style={{ fontSize: '0.9rem', fontWeight: 700 }}>Notifications</strong>
+          <div className="oh-notification-panel__header">
+            <strong>Notifications</strong>
             {unreadCount > 0 && (
               <button
+                className="oh-notification-panel__read-all"
                 type="button"
                 onClick={() => markAllAsReadMutation.mutate()}
                 disabled={markAllAsReadMutation.isPending}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.75rem',
-                  color: 'var(--color-primary)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 600
-                }}
               >
                 {markAllAsReadMutation.isPending ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -167,80 +150,53 @@ export function NotificationCenter({ userIdentity }: NotificationCenterProps) {
             )}
           </div>
 
-          {/* List Body */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="oh-notification-panel__body">
             {isLoading ? (
-              <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto var(--space-2)' }} />
+              <div className="oh-notification-panel__state">
+                <Loader2 size={20} className="animate-spin" />
                 Loading alerts...
               </div>
             ) : isError ? (
-              <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                <p style={{ margin: '0 0 var(--space-3)' }}>Notifications could not be loaded.</p>
+              <div className="oh-notification-panel__state">
+                <p>Notifications could not be loaded.</p>
                 <button
                   type="button"
                   onClick={() => void refetch()}
                   disabled={isFetching}
                   className="oh-button oh-button-secondary"
-                  style={{ fontSize: '0.75rem' }}
                 >
                   {isFetching ? 'Trying again...' : 'Try again'}
                 </button>
               </div>
             ) : notifications.length === 0 ? (
-              <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+              <div className="oh-notification-panel__state">
                 No notifications yet.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="oh-notification-list" role="list">
                 {notifications.map((n) => (
                   <button
                     key={n.id}
                     type="button"
+                    role="listitem"
+                    className={`oh-notification-item${n.is_read ? '' : ' oh-notification-item--unread'}`}
                     onClick={async () => {
                       if (!n.is_read) await markAsReadMutation.mutateAsync(n.id)
                       setIsOpen(false)
                       if (n.action_path) navigate(n.action_path)
                     }}
-                    style={{
-                      display: 'flex',
-                      gap: 'var(--space-3)',
-                      padding: 'var(--space-3) var(--space-4)',
-                      textAlign: 'left',
-                      background: n.is_read ? 'transparent' : 'var(--color-primary-lightest)',
-                      border: 'none',
-                      borderBottom: '1px solid var(--color-border)',
-                      cursor: 'pointer',
-                      width: '100%',
-                      transition: 'background var(--transition-fast)'
-                    }}
                   >
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        background: 'var(--color-background-subtle)',
-                        flexShrink: 0
-                      }}
-                    >
+                    <span className="oh-notification-item__icon">
                       {getCategoryIcon(n.category)}
                     </span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-2)' }}>
-                        <strong style={{ fontSize: '0.8rem', fontWeight: n.is_read ? 600 : 700, color: 'var(--color-text)' }}>
-                          {n.title}
-                        </strong>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                    <div className="oh-notification-item__content">
+                      <div className="oh-notification-item__heading">
+                        <strong>{n.title}</strong>
+                        <span>
                           {formatRelativeTime(n.created_at)}
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: '2px 0 0 0', lineBreak: 'anywhere' }}>
-                        {n.message}
-                      </p>
+                      <p>{n.message}</p>
                     </div>
                   </button>
                 ))}

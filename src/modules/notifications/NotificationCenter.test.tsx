@@ -99,6 +99,20 @@ describe('NotificationCenter', () => {
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 
+  it('keeps large unread counts legible without overflowing the bell', async () => {
+    const manyNotifications = Array.from({ length: 105 }, (_, index): Notification => ({
+      ...mockNotifications[0],
+      id: `notif-${index}`,
+      title: `Notification ${index}`,
+    }))
+    vi.mocked(notificationsApi.listNotifications).mockResolvedValue(manyNotifications)
+
+    renderWithProviders(<NotificationCenter userIdentity="user-123" />)
+
+    expect(await screen.findByRole('button', { name: /Notifications, 105 unread/i })).toBeInTheDocument()
+    expect(screen.getByText('99+')).toBeInTheDocument()
+  })
+
   it('marks a single notification as read on click', async () => {
     vi.mocked(notificationsApi.listNotifications).mockResolvedValue(mockNotifications)
     vi.mocked(notificationsApi.markAsRead).mockResolvedValue()

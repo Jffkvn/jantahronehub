@@ -123,6 +123,16 @@ describe('AppShell', () => {
     expect(screen.getByText('Dashboard content')).toBeInTheDocument()
   })
 
+  it('provides keyboard users a direct route to the main workspace', () => {
+    renderShell('hr_admin', ['home', 'my_workspace', 'hr'])
+
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute(
+      'href',
+      '#main-content',
+    )
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content')
+  })
+
   it('shows Projects first in Operations and keeps Daily Tracker separate', () => {
     renderShell('super_admin', ['home', 'inventory', 'cash', 'projects', 'tracker'])
 

@@ -43,6 +43,7 @@ export function AppShell({
 
   return (
     <div className={`oh-app-shell${sidebarCollapsed ? ' oh-app-shell--collapsed' : ''}`}>
+      <a className="oh-skip-link" href="#main-content">Skip to main content</a>
       <Sidebar
         modules={visibleModules}
         collapsed={sidebarCollapsed}
