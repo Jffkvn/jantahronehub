@@ -1893,3 +1893,59 @@ textarea {
   .oh-bar-chart { overflow-x: auto; }
   .oh-bar-chart__item { flex: 0 0 4rem; }
 }
+
+/* Premium governance reports */
+.oh-reports-pulse {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.oh-reports-tabs {
+  position: sticky;
+  z-index: 8;
+  top: calc(var(--oh-topbar-height, 5rem) + var(--space-2));
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  box-shadow: var(--shadow-sm);
+  scrollbar-width: thin;
+}
+
+.oh-reports-tabs .oh-portal-tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.oh-reports-chart-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.oh-reports-chart-grid--single { grid-template-columns: 1fr; }
+
+.oh-reports-mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.oh-workspace-page .oh-section-surface,
+.oh-workspace-page .oh-table-wrapper {
+  border-radius: var(--radius-xl);
+}
+
+@media (max-width: 67.5rem) {
+  .oh-reports-pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 47.5rem) {
+  .oh-reports-chart-grid,
+  .oh-reports-mini-metrics { grid-template-columns: 1fr; }
+  .oh-reports-tabs { top: var(--space-2); }
+}
+
+@media (max-width: 35rem) {
+  .oh-reports-pulse { grid-template-columns: 1fr; }
+}

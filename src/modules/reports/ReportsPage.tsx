@@ -6,6 +6,9 @@ import { getSupabaseClient } from '../../lib/supabase/client'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { BarChart } from '../../components/charts/BarChart'
+import { DonutChart } from '../../components/charts/DonutChart'
 import {
   FileSpreadsheet,
   Users,
@@ -14,8 +17,13 @@ import {
   ShieldAlert,
   Package,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  WalletCards,
+  CircleGauge
 } from 'lucide-react'
+
+const compactNumber = new Intl.NumberFormat('en-UG', { notation: 'compact', maximumFractionDigits: 1 })
+const compactCurrency = (value: number) => `UGX ${compactNumber.format(value)}`
 
 export default function ReportsPage() {
   const { access } = useAuth()
@@ -49,6 +57,22 @@ export default function ReportsPage() {
   const isLoadingProjects = isLoadingSnapshot
   const isLoadingCash = isLoadingSnapshot
   const isLoadingExceptions = isLoadingSnapshot
+  const latestPayroll = payrollSummaries[0]
+  const activeProjects = projects.filter(project => project.status === 'active').length
+  const attentionProjects = projects.filter(project => project.healthStatus !== 'on_track').length
+  const lowStockItems = inventory.filter(item => item.balance <= 0).length
+  const outstandingCash = cashReconciliation.reduce((sum, item) => sum + item.outstandingBalance, 0)
+  const departmentChart = workforce?.departmentCounts.map(item => ({ label: item.departmentName, value: item.count })) ?? []
+  const payrollChart = payrollSummaries.slice(0, 8).reverse().map(item => ({ label: item.label, value: item.totalNet }))
+  const projectHealthChart = ['on_track', 'needs_attention', 'at_risk'].map(status => ({
+    label: status.replaceAll('_', ' '),
+    value: projects.filter(project => project.healthStatus === status).length
+  })).filter(item => item.value > 0)
+  const assetStatusChart = Array.from(new Set(assets.map(asset => asset.status))).map(status => ({
+    label: status.replaceAll('_', ' '),
+    value: assets.filter(asset => asset.status === status).length
+  }))
+  const cashChart = cashReconciliation.slice(0, 8).map(item => ({ label: item.projectName, value: item.outstandingBalance }))
 
   // Export Auditing Mutation
   const auditExportMutation = useMutation({
@@ -373,8 +397,39 @@ export default function ReportsPage() {
         </div>
       )}
 
+      <section className="oh-reports-pulse" aria-label="Governance overview">
+        <MetricCard
+          label="Active workforce"
+          value={isLoadingSnapshot ? '—' : workforce?.activeCount ?? 0}
+          detail={`${workforce?.departmentCounts.length ?? 0} departments`}
+          icon={<Users size={20} />}
+          tone="emerald"
+        />
+        <MetricCard
+          label="Latest net payroll"
+          value={isLoadingSnapshot ? '—' : compactCurrency(latestPayroll?.totalNet ?? 0)}
+          detail={latestPayroll?.label ?? 'No approved period'}
+          icon={<WalletCards size={20} />}
+          tone="blue"
+        />
+        <MetricCard
+          label="Active projects"
+          value={isLoadingSnapshot ? '—' : activeProjects}
+          detail={`${attentionProjects} requiring attention`}
+          icon={<Briefcase size={20} />}
+          tone={attentionProjects > 0 ? 'amber' : 'violet'}
+        />
+        <MetricCard
+          label="Outstanding project cash"
+          value={isLoadingSnapshot ? '—' : compactCurrency(outstandingCash)}
+          detail={`${exceptions.length} receipt exceptions`}
+          icon={<Landmark size={20} />}
+          tone={outstandingCash > 0 ? 'rose' : 'navy'}
+        />
+      </section>
+
       {/* Tab select headers */}
-      <div className="oh-portal-tabs" aria-label="Governance sections">
+      <div className="oh-portal-tabs oh-reports-tabs" aria-label="Governance sections">
         <button
           className={activeTab === 'workforce' ? 'oh-portal-tab oh-portal-tab--active' : 'oh-portal-tab'}
           onClick={() => setActiveTab('workforce')}
@@ -451,6 +506,15 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
+                <div className="oh-reports-chart-grid oh-reports-chart-grid--single">
+                  <DonutChart
+                    title="Headcount by department"
+                    summary="Current active workforce distribution across the organisation."
+                    data={departmentChart}
+                    totalLabel="Employees"
+                  />
+                </div>
+
                 <div className="oh-section-surface">
                   <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 var(--space-3) 0' }}>Departmental Headcount Splits</h4>
                   <div className="oh-table-wrapper">
@@ -499,6 +563,26 @@ export default function ReportsPage() {
               />
             ) : (
               <div className="oh-form-stack" style={{ gap: 'var(--space-5)' }}>
+                <div className="oh-reports-chart-grid">
+                  <BarChart
+                    title="Net payroll by period"
+                    summary="Approved and historical net payroll totals from the canonical payroll ledger."
+                    data={payrollChart}
+                    formatValue={compactCurrency}
+                  />
+                  <DonutChart
+                    title="Latest payroll composition"
+                    summary={latestPayroll ? `Statutory and net distribution for ${latestPayroll.label}.` : 'No payroll period is available.'}
+                    data={latestPayroll ? [
+                      { label: 'Net pay', value: latestPayroll.totalNet },
+                      { label: 'PAYE', value: latestPayroll.totalPaye },
+                      { label: 'NSSF', value: latestPayroll.totalNssfEmployee + latestPayroll.totalNssfEmployer },
+                      { label: 'Other deductions', value: latestPayroll.totalDeductions }
+                    ] : []}
+                    totalLabel="Payroll"
+                    formatValue={compactCurrency}
+                  />
+                </div>
                 <div className="oh-table-wrapper">
                   <table className="oh-table" style={{ width: '100%' }}>
                     <thead>
@@ -588,6 +672,23 @@ export default function ReportsPage() {
         {/* Tab 3: Inventory & Asset Reports */}
         {activeTab === 'inventory' && (
           <div className="oh-form-stack" style={{ gap: 'var(--space-5)' }}>
+            <section className="oh-reports-mini-metrics" aria-label="Inventory report summary">
+              <MetricCard label="Consumable SKUs" value={inventory.length} detail={`${lowStockItems} at zero balance`} icon={<Package size={19} />} tone="emerald" />
+              <MetricCard label="Equipment assets" value={assets.length} detail={`${assets.filter(asset => asset.status === 'assigned').length} assigned`} icon={<CircleGauge size={19} />} tone="blue" />
+            </section>
+            <div className="oh-reports-chart-grid">
+              <BarChart
+                title="Stock balances"
+                summary="Highest recorded consumable balances at the HQ warehouse."
+                data={inventory.slice().sort((a, b) => b.balance - a.balance).slice(0, 8).map(item => ({ label: item.itemName, value: item.balance }))}
+              />
+              <DonutChart
+                title="Equipment status"
+                summary="Current availability and custody distribution for registered assets."
+                data={assetStatusChart}
+                totalLabel="Assets"
+              />
+            </div>
             {/* Warehouses Balances split */}
             <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
@@ -726,7 +827,21 @@ export default function ReportsPage() {
                 icon={<Briefcase size={22} />}
               />
             ) : (
-              <div className="oh-table-wrapper">
+              <div className="oh-form-stack" style={{ gap: 'var(--space-5)' }}>
+                <div className="oh-reports-chart-grid">
+                  <DonutChart
+                    title="Portfolio health"
+                    summary="Operational health across all visible projects."
+                    data={projectHealthChart}
+                    totalLabel="Projects"
+                  />
+                  <BarChart
+                    title="Field reporting activity"
+                    summary="Daily updates submitted per project."
+                    data={projects.slice(0, 8).map(project => ({ label: project.name, value: project.totalUpdates }))}
+                  />
+                </div>
+                <div className="oh-table-wrapper">
                 <table className="oh-table" style={{ width: '100%' }}>
                   <thead>
                     <tr>
@@ -769,6 +884,7 @@ export default function ReportsPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>
@@ -777,6 +893,18 @@ export default function ReportsPage() {
         {/* Tab 5: Finance & Reconciliations */}
         {activeTab === 'cash' && (
           <div className="oh-form-stack" style={{ gap: 'var(--space-5)' }}>
+            <section className="oh-reports-mini-metrics" aria-label="Cash report summary">
+              <MetricCard label="Outstanding balance" value={compactCurrency(outstandingCash)} detail={`${cashReconciliation.length} advance records`} icon={<Landmark size={19} />} tone={outstandingCash > 0 ? 'amber' : 'emerald'} />
+              <MetricCard label="Receipt exceptions" value={exceptions.length} detail="Items requiring an audit trail" icon={<AlertTriangle size={19} />} tone={exceptions.length > 0 ? 'rose' : 'navy'} />
+            </section>
+            <div className="oh-reports-chart-grid oh-reports-chart-grid--single">
+              <BarChart
+                title="Outstanding cash by project"
+                summary="Unreconciled project cash from the canonical advances ledger."
+                data={cashChart}
+                formatValue={compactCurrency}
+              />
+            </div>
             {/* Cash Advance Ledger */}
             <div className="oh-card" style={{ padding: 'var(--space-4)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
