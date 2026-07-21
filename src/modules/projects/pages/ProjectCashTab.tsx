@@ -20,7 +20,7 @@ export function ProjectCashTab({ projectId, compact = false }: { projectId: stri
   const cash = query.data
   if (!cash) return null
   return (
-    <section className="oh-card oh-project-ledger-panel">
+    <section className="oh-card oh-project-ledger-panel oh-project-ledger-panel--cash">
       <div className="oh-team-section-header"><div><h3>Cash reconciliation</h3><p>Calculated from the canonical Cash ledger.</p></div><Link to={`/cash?project=${projectId}`}>Open Cash <ArrowRight size={15} /></Link></div>
       <div className="oh-project-ledger-metrics">
         <div><Banknote size={17} /><span>Disbursed</span><strong>{money.format(cash.disbursed)}</strong></div>

@@ -239,9 +239,9 @@ export function DailyUpdatesTab() {
   const isCfoOrAdmin = canManage
 
   return (
-    <div className="oh-form-stack" style={{ gap: 'var(--space-6)' }}>
+    <div className="oh-form-stack oh-daily-updates" style={{ gap: 'var(--space-6)' }}>
       {/* Top Header bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+      <div className="oh-page-action-header oh-daily-updates__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Field Daily Updates</h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>Submit progress reports, attach photos/evidence, and verify field logs.</p>
@@ -266,7 +266,7 @@ export function DailyUpdatesTab() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 'var(--space-3)', background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
+      <div className="oh-daily-updates__filters" style={{ display: 'flex', gap: 'var(--space-3)', background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
         <div className="oh-field" style={{ minWidth: '200px', margin: 0 }}>
           <select
             className="oh-input"
@@ -309,15 +309,15 @@ export function DailyUpdatesTab() {
           icon={<Calendar size={22} />}
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <div className="oh-daily-updates__list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {filteredUpdates.map(update => {
             const canEdit = update.submitted_by === currentUserId && (update.status === 'draft' || update.status === 'revision_requested')
 
             return (
-              <div key={update.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
+              <article className="oh-daily-update-card" key={update.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
 
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                <div className="oh-daily-update-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>
                       <Link to={`/tracker/projects/${update.project_id}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }} className="oh-link">
@@ -340,14 +340,14 @@ export function DailyUpdatesTab() {
                   </div>
                 </div>
 
-                <p style={{ margin: 'var(--space-2) 0', fontSize: '0.95rem', color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>
+                <p className="oh-daily-update-card__summary" style={{ margin: 'var(--space-2) 0', fontSize: '0.95rem', color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>
                   {update.summary}
                 </p>
 
                 <DailyEvidenceGallery paths={update.photo_urls || []} />
 
                 {update.pm_feedback && (
-                  <div style={{ borderLeft: '3px solid var(--color-border)', paddingLeft: 'var(--space-3)', background: 'var(--color-background)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--space-2)' }}>
+                  <div className="oh-daily-update-card__review" style={{ borderLeft: '3px solid var(--color-border)', paddingLeft: 'var(--space-3)', background: 'var(--color-background)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--space-2)' }}>
                     <small style={{ display: 'block', fontWeight: 700, color: 'var(--color-text-muted)' }}>Review Feedback:</small>
                     <p style={{ margin: 0, fontSize: '0.875rem' }}>{update.pm_feedback}</p>
                     {update.profiles_endorsed_by && (
@@ -358,7 +358,7 @@ export function DailyUpdatesTab() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-2)' }}>
+                <footer className="oh-daily-update-card__footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-3)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-2)' }}>
                   <small style={{ color: 'var(--color-text-muted)' }}>
                     Submitted by: <strong>{update.profiles_submitted_by?.display_name || 'Unknown team member'} · {update.profiles_submitted_by?.role_name || 'Project Coordinator'}</strong>
                   </small>
@@ -389,8 +389,8 @@ export function DailyUpdatesTab() {
                       </Button>
                     </div>
                   )}
-                </div>
-              </div>
+                </footer>
+              </article>
             )
           })}
         </div>

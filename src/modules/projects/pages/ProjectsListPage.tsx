@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Plus, Search } from 'lucide-react'
+import { Activity, BriefcaseBusiness, CirclePause, CircleCheckBig, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { MetricCard } from '../../../components/ui/MetricCard'
+import { DonutChart } from '../../../components/charts/DonutChart'
+import { ProgressList } from '../../../components/charts/ProgressList'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
 import { useAuth } from '../../auth/AuthProvider'
 import { projectsApi, type Project } from '../api/projects'
@@ -54,6 +57,8 @@ export function ProjectsListPage() {
     onHold: projects.filter((project) => project.status === 'on_hold').length,
     completed: projects.filter((project) => project.status === 'completed').length,
   }
+  const totalProjects = projects.length
+  const attentionCount = projects.filter((project) => ['at_risk', 'needs_attention'].includes(project.health_status)).length
 
   return (
     <section className="oh-workspace-page oh-projects-page">
@@ -66,15 +71,34 @@ export function ProjectsListPage() {
         {canCreate ? <Link className="oh-button oh-button--primary" to="/projects/new"><Plus size={17} /> Create project</Link> : null}
       </header>
 
-      <section className="oh-kpi-band" aria-label="Project status summary">
-        {[
-          ['Active', counts.active],
-          ['At risk', counts.atRisk],
-          ['On hold', counts.onHold],
-          ['Completed', counts.completed],
-        ].map(([label, value]) => (
-          <div className="oh-kpi-item" key={label}><span>{label}</span><strong>{value}</strong></div>
-        ))}
+      <section className="oh-projects-metrics" aria-label="Project status summary">
+        <MetricCard label="Active projects" value={counts.active} detail={`${totalProjects} projects in the workspace`} icon={<BriefcaseBusiness />} tone="emerald" />
+        <MetricCard label="At risk" value={counts.atRisk} detail={counts.atRisk ? 'Requires operational attention' : 'No critical projects'} icon={<Activity />} tone="rose" />
+        <MetricCard label="On hold" value={counts.onHold} detail={counts.onHold ? 'Paused delivery work' : 'No paused projects'} icon={<CirclePause />} tone="amber" />
+        <MetricCard label="Completed" value={counts.completed} detail="Closed delivery records" icon={<CircleCheckBig />} tone="blue" />
+      </section>
+
+      <section className="oh-projects-insights" aria-label="Project delivery insights">
+        <DonutChart
+          title="Portfolio status"
+          summary="Current distribution across the project lifecycle."
+          totalLabel="Projects"
+          data={[
+            { label: 'Planned', value: projects.filter((project) => project.status === 'planned').length },
+            { label: 'Active', value: counts.active },
+            { label: 'On hold', value: counts.onHold },
+            { label: 'Completed', value: counts.completed },
+          ].filter((item) => item.value > 0)}
+        />
+        <ProgressList
+          title="Delivery health"
+          summary="A quick view of healthy work and projects needing intervention."
+          items={totalProjects ? [
+            { label: 'On track', value: projects.filter((project) => project.health_status === 'on_track').length, total: totalProjects, detail: 'Proceeding normally' },
+            { label: 'Needs attention', value: attentionCount, total: totalProjects, detail: 'At risk or needs attention' },
+            { label: 'Completed', value: counts.completed, total: totalProjects, detail: 'Delivery closed' },
+          ] : []}
+        />
       </section>
 
       <section className="oh-card oh-projects-directory">

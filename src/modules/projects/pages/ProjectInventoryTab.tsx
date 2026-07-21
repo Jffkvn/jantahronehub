@@ -18,7 +18,7 @@ export function ProjectInventoryTab({ projectId, compact = false }: { projectId:
   const inventory = query.data
   if (!inventory) return null
   return (
-    <section className="oh-card oh-project-ledger-panel">
+    <section className="oh-card oh-project-ledger-panel oh-project-ledger-panel--inventory">
       <div className="oh-team-section-header">
         <div><h3>Inventory reconciliation</h3><p>Calculated from canonical requests, issues and custody.</p></div>
         <Link to={`/inventory/requests?project=${projectId}`}>Open Inventory <ArrowRight size={15} /></Link>

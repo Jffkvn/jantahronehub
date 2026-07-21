@@ -86,7 +86,7 @@ export function ProjectWorkspacePage({
           </NavLink>
         ))}
       </nav>
-      <section className="oh-project-tab-content">
+      <section className={`oh-project-tab-content oh-project-tab-content--${activeTab}`}>
         <header className="oh-project-tab-heading"><p>Project workspace</p><h2>{headings[activeTab]}</h2></header>
         {activeTab === 'summary' ? (
           <div className="oh-project-summary-grid">
