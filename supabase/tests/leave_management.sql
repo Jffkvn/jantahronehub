@@ -117,7 +117,11 @@ select lives_ok(
   $$ select public.rpc_submit_leave_request((select id from public.leave_types where code = 'annual'), '2026-08-04', '2026-08-05', 'Family travel') $$,
   'employee can submit their own whole-day request'
 );
-select set_config('test.leave_request_id', (select id::text from public.leave_requests limit 1), true);
+select set_config(
+  'test.leave_request_id',
+  (select id::text from public.leave_requests where employee_id = '86000000-0000-4000-8000-000000000001'),
+  true
+);
 insert into storage.objects (bucket_id, name, owner_id)
 select 'private-files',
   '85000000-0000-4000-8000-000000000001/leave-evidence/' || request_row.id || '/87000000-0000-4000-8000-000000000001.jpg',
@@ -169,7 +173,14 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"85000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
-select is((select count(*)::integer from public.rpc_list_hr_leave_requests()), 1, 'HR sees the pending request with operational detail');
+select is(
+  (select count(*)::integer
+   from public.rpc_list_hr_leave_requests()
+   where employee_id = '86000000-0000-4000-8000-000000000001'
+     and status = 'pending'),
+  1,
+  'HR sees the synthetic pending request with operational detail'
+);
 select lives_ok(
   $$ select public.rpc_decide_leave_request((select id from public.leave_requests where employee_id = '86000000-0000-4000-8000-000000000001'), 'approved', 'Approved after offline discussion') $$,
   'HR can approve a pending request'

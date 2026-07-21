@@ -112,11 +112,37 @@ with ins_eq_sens as (
 )
 insert into r_equipment_sensitive (id) select id from ins_eq_sens;
 
--- Seed stock levels (15 bags of Route Cement)
-insert into public.stock_movements (movement_type, warehouse_id, consumable_item_id, quantity, reference_id, performed_by)
-select 'receipt', (select id from r_warehouse), (select id from r_consumable), 15, extensions.gen_random_uuid(), '70000000-0000-0000-0000-000000000001';
-
 grant select on r_warehouse, r_category, r_consumable, r_equipment_regular, r_equipment_sensitive to authenticated;
+
+-- Seed auditable warehouse valuations and stock through the canonical receipt RPC.
+-- Request valuation deliberately ignores caller-entered estimates and uses the
+-- latest positive receipt price instead.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"70000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+
+select public.rpc_receive_stock(
+  (select id from r_warehouse),
+  'ROUTE-GRN-001',
+  jsonb_build_array(
+    jsonb_build_object(
+      'consumable_item_id', (select id from r_consumable),
+      'quantity', 15,
+      'unit_price', 1000000
+    ),
+    jsonb_build_object(
+      'equipment_asset_id', (select id from r_equipment_regular),
+      'quantity', 1,
+      'unit_price', 500000
+    ),
+    jsonb_build_object(
+      'equipment_asset_id', (select id from r_equipment_sensitive),
+      'quantity', 1,
+      'unit_price', 750000
+    )
+  )
+);
+
+reset role;
 
 -- Ensure default settings
 update public.inventory_settings

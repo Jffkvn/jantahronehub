@@ -80,7 +80,13 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"91000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
-select is((select count(*)::integer from public.rpc_list_hr_staff_advances()), 1, 'HR sees employee requests');
+select is(
+  (select count(*)::integer
+   from public.rpc_list_hr_staff_advances()
+   where id = current_setting('test.advance_id')::uuid),
+  1,
+  'HR sees the synthetic employee request'
+);
 select lives_ok(
   $$ select public.rpc_decide_staff_advance(current_setting('test.advance_id')::uuid, 'approved', 'Approved after offline discussion') $$,
   'HR can approve a request'
@@ -136,5 +142,12 @@ select is(
 );
 reset role;
 
-select * from finish();
+do $$
+declare diagnostic text;
+begin
+  for diagnostic in select * from finish() loop
+    raise exception using message = 'pgTAP failure: ' || diagnostic;
+  end loop;
+end
+$$;
 rollback;

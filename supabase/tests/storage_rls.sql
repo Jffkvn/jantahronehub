@@ -121,9 +121,12 @@ select set_config(
   true
 );
 select is(
-  (select count(*) from storage.objects where bucket_id = 'private-files'),
+  (select count(*)
+   from storage.objects
+   where bucket_id = 'private-files'
+     and name = '10000000-0000-4000-8000-000000000001/employee-documents/20000000-0000-4000-8000-000000000002/30000000-0000-4000-8000-000000000003.pdf'),
   1::bigint,
-  'super_admin can read private files at aal2'
+  'super_admin can read the synthetic private file at aal2'
 );
 select is(
   (
