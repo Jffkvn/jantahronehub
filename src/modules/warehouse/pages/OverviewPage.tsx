@@ -5,7 +5,10 @@ import { inventoryApi, type InventorySettings } from '../api/inventory'
 import { useAuth } from '../../auth/AuthProvider'
 import { Button } from '../../../components/ui/Button'
 import { ScannerModal } from '../components/ScannerModal'
-import { FileSpreadsheet, Camera, Settings, RefreshCw } from 'lucide-react'
+import { MetricCard } from '../../../components/ui/MetricCard'
+import { DonutChart } from '../../../components/charts/DonutChart'
+import { ProgressList } from '../../../components/charts/ProgressList'
+import { FileSpreadsheet, Camera, Settings, RefreshCw, Boxes, CircleGauge, ClipboardCheck, Warehouse } from 'lucide-react'
 
 export function OverviewPage() {
   const queryClient = useQueryClient()
@@ -59,6 +62,11 @@ export function OverviewPage() {
   })
 
   const pendingRequestsCount = (requests.data || []).filter(r => r.status === 'pending_approval').length
+  const availableAssets = (equipment.data || []).filter(asset => asset.status === 'available').length
+  const movementData = ['receipt', 'issue', 'return', 'adjustment_add', 'adjustment_remove'].map(type => ({
+    label: type.replaceAll('_', ' '),
+    value: (movements.data || []).filter(movement => movement.movement_type === type).length,
+  })).filter(item => item.value > 0)
 
   const refreshData = async () => {
     await Promise.all([
@@ -96,11 +104,24 @@ export function OverviewPage() {
       </header>
 
       {/* KPI Metrics */}
-      <section className="oh-kpi-band" aria-label="Inventory metrics">
-        <article className="oh-kpi"><span className="oh-kpi__label">Warehouses</span><strong className="oh-kpi__value">{warehouses.data?.length ?? 0}</strong></article>
-        <Link className="oh-kpi-link" to="/inventory/consumables"><article className="oh-kpi"><span className="oh-kpi__label">Consumable SKUs</span><strong className="oh-kpi__value">{consumables.data?.length ?? 0}</strong></article></Link>
-        <Link className="oh-kpi-link" to="/inventory/equipment"><article className="oh-kpi"><span className="oh-kpi__label">Active assets</span><strong className="oh-kpi__value oh-kpi__value--success">{equipment.data?.length ?? 0}</strong></article></Link>
-        <Link className="oh-kpi-link" to="/inventory/requests?status=pending_approval"><article className="oh-kpi"><span className="oh-kpi__label">Pending approvals</span><strong className={`oh-kpi__value${pendingRequestsCount > 0 ? ' oh-kpi__value--warning' : ''}`}>{pendingRequestsCount}</strong></article></Link>
+      <section className="oh-inventory-metrics" aria-label="Inventory metrics">
+        <MetricCard label="HQ warehouse" value={warehouses.data?.length ? 'Active' : 'Pending'} detail="Egypro central receiving location" icon={<Warehouse />} tone="navy" />
+        <MetricCard label="Consumable SKUs" value={consumables.data?.length ?? 0} detail="Configured item masters" icon={<Boxes />} tone="emerald" to="/inventory/consumables" />
+        <MetricCard label="Available assets" value={availableAssets} detail={`${equipment.data?.length ?? 0} equipment assets registered`} icon={<CircleGauge />} tone="blue" to="/inventory/equipment" />
+        <MetricCard label="Pending approvals" value={pendingRequestsCount} detail={pendingRequestsCount ? 'Requests need action' : 'Request queue is clear'} icon={<ClipboardCheck />} tone={pendingRequestsCount ? 'amber' : 'violet'} to="/inventory/requests?status=pending_approval" />
+      </section>
+
+      <section className="oh-inventory-insights" aria-label="Warehouse activity insights">
+        <DonutChart title="Movement mix" summary="Receipts, issues, returns and adjustments recorded in the ledger." data={movementData} totalLabel="Movements" />
+        <ProgressList
+          title="Operational readiness"
+          summary="Live readiness of inventory master data and request handling."
+          items={[
+            { label: 'Available equipment', value: availableAssets, total: equipment.data?.length ?? 0, detail: 'Ready for assignment' },
+            { label: 'Processed requests', value: (requests.data || []).filter(request => ['approved', 'fulfilled'].includes(request.status)).length, total: requests.data?.length ?? 0, detail: 'Approved or fulfilled' },
+            { label: 'Configured SKUs', value: consumables.data?.length ?? 0, total: Math.max(consumables.data?.length ?? 0, 1), detail: 'Consumable item masters' },
+          ]}
+        />
       </section>
 
       <div className="oh-operational-split">

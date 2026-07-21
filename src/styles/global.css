@@ -1995,6 +1995,31 @@ textarea {
   gap: var(--space-4);
 }
 
+.oh-inventory-metrics,
+.oh-cash-metrics {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.oh-inventory-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.oh-cash-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.oh-inventory-insights,
+.oh-cash-insights {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.oh-cash-ledger-table {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-surface);
+}
+
 .oh-workspace-page .oh-section-surface,
 .oh-workspace-page .oh-table-wrapper {
   border-radius: var(--radius-xl);
@@ -2002,14 +2027,19 @@ textarea {
 
 @media (max-width: 67.5rem) {
   .oh-reports-pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .oh-inventory-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 47.5rem) {
   .oh-reports-chart-grid,
-  .oh-reports-mini-metrics { grid-template-columns: 1fr; }
+  .oh-reports-mini-metrics,
+  .oh-inventory-insights,
+  .oh-cash-insights,
+  .oh-cash-metrics { grid-template-columns: 1fr; }
   .oh-reports-tabs { top: var(--space-2); }
 }
 
 @media (max-width: 35rem) {
-  .oh-reports-pulse { grid-template-columns: 1fr; }
+  .oh-reports-pulse,
+  .oh-inventory-metrics { grid-template-columns: 1fr; }
 }

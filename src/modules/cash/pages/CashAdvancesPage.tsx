@@ -8,7 +8,10 @@ import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge, type StatusTone } from '../../../components/ui/StatusBadge'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { Plus, Landmark, RefreshCw, AlertTriangle, ArrowRight } from 'lucide-react'
+import { MetricCard } from '../../../components/ui/MetricCard'
+import { DonutChart } from '../../../components/charts/DonutChart'
+import { BarChart } from '../../../components/charts/BarChart'
+import { Plus, Landmark, RefreshCw, AlertTriangle, ArrowRight, Banknote, Clock3, WalletCards } from 'lucide-react'
 
 export function CashAdvancesPage() {
   const queryClient = useQueryClient()
@@ -100,6 +103,17 @@ export function CashAdvancesPage() {
 
   const pendingCount = requests.filter(r => r.status === 'pending_approval').length
   const activeCount = requests.filter(r => r.status === 'disbursed').length
+  const statusData = ['pending_approval', 'approved', 'disbursed', 'completed', 'rejected'].map(status => ({
+    label: status.replaceAll('_', ' '),
+    value: requests.filter(request => request.status === status).length,
+  })).filter(item => item.value > 0)
+  const projectTotals = Array.from(new Set(requests.map(request => request.projects?.name || 'Unassigned')))
+    .map(project => ({
+      label: project.length > 16 ? `${project.slice(0, 14)}…` : project,
+      value: requests.filter(request => (request.projects?.name || 'Unassigned') === project).reduce((sum, request) => sum + Number(request.amount_disbursed || 0), 0),
+    }))
+    .filter(item => item.value > 0)
+    .slice(0, 6)
 
   const getStatusTone = (status: string): StatusTone => {
     switch (status) {
@@ -132,19 +146,15 @@ export function CashAdvancesPage() {
       </header>
 
       {/* KPI Section */}
-      <section className="oh-kpi-band" aria-label="Cash advance metrics">
-        <article className="oh-kpi">
-          <span className="oh-kpi__label">Total disbursed funds</span>
-          <strong className="oh-kpi__value">{totalDisbursed.toLocaleString()} UGX</strong>
-        </article>
-        <article className="oh-kpi">
-          <span className="oh-kpi__label">Pending approval</span>
-          <strong className="oh-kpi__value oh-kpi__value--warning">{pendingCount} Requests</strong>
-        </article>
-        <article className="oh-kpi">
-          <span className="oh-kpi__label">Active disbursements</span>
-          <strong className="oh-kpi__value oh-kpi__value--success">{activeCount} Advances</strong>
-        </article>
+      <section className="oh-cash-metrics" aria-label="Cash advance metrics">
+        <MetricCard label="Total disbursed" value={`UGX ${totalDisbursed.toLocaleString()}`} detail="Funds released to project teams" icon={<Banknote />} tone="emerald" />
+        <MetricCard label="Pending approval" value={pendingCount} detail={pendingCount ? 'Requests require review' : 'Approval queue is clear'} icon={<Clock3 />} tone="amber" />
+        <MetricCard label="Active advances" value={activeCount} detail="Open field accountability" icon={<WalletCards />} tone="blue" />
+      </section>
+
+      <section className="oh-cash-insights" aria-label="Cash portfolio insights">
+        <DonutChart title="Advance status" summary="Live distribution of project cash requests." data={statusData} totalLabel="Requests" />
+        <BarChart title="Disbursed by project" summary="Released cash grouped by project." data={projectTotals} formatValue={(value) => value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` : value.toLocaleString()} />
       </section>
 
       {/* Requests portfolio list */}
@@ -159,7 +169,7 @@ export function CashAdvancesPage() {
           icon={<Landmark size={22} />}
         />
       ) : (
-        <div className="oh-table-wrapper">
+        <div className="oh-table-wrapper oh-cash-ledger-table">
           <table className="oh-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
