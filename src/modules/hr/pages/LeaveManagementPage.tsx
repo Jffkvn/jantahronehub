@@ -55,7 +55,7 @@ export function LeaveManagementPage({ api = leaveApi, employeesApi = employeeApi
     }
   }
 
-  return <section>
+  return <section className="oh-workspace-page">
     <header className="oh-page-header"><div><p>People operations</p><h1>Leave Management</h1><span>Track annual leave, sick days and time off.</span></div><div className="oh-inline-actions"><Button variant="secondary" onClick={() => setSettingUp(true)}><Settings size={18} /> Leave setup</Button><div className="oh-leave-view-toggle"><Button className="oh-button--small" variant={view === 'calendar' ? 'primary' : 'secondary'} onClick={() => setView('calendar')}><Calendar size={16} /> Calendar</Button><Button className="oh-button--small" variant={view === 'list' ? 'primary' : 'secondary'} onClick={() => setView('list')}><List size={16} /> List</Button></div><Button onClick={() => setLogging(true)}><CalendarPlus size={18} /> Log Leave</Button></div></header>
     {(types.isLoading || requests.isLoading || employees.isLoading) ? <p role="status">Loading leave workspace…</p> : null}
     {(types.isError || requests.isError || employees.isError) ? <FormError>Leave workspace could not be loaded.</FormError> : null}

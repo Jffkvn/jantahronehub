@@ -38,7 +38,7 @@ export function PerformanceManagementPage({ api = performanceApi, employeesApi =
       setImportMessage(`${imported} review${imported === 1 ? '' : 's'} imported.${problems.length ? ` ${problems.length} row${problems.length === 1 ? '' : 's'} need correction: ${problems.slice(0, 3).join(' ')}` : ''}`); await refresh()
     } catch (error) { setImportMessage(error instanceof Error ? error.message : 'The workbook could not be imported.') } finally { setImporting(false); if (fileRef.current) fileRef.current.value = '' }
   }
-  return <section>
+  return <section className="oh-workspace-page">
     <header className="oh-page-header"><div><p>People development</p><h1>Performance Management</h1><span>Run review cycles, assign managers, calibrate assessments and release outcomes.</span></div><div className="oh-inline-actions"><Button variant="secondary" onClick={() => exportWorkbook()}><Download size={18} /> Excel template</Button><input ref={fileRef} hidden type="file" accept=".xlsx,.xls" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importWorkbook(file) }} /><Button variant="secondary" loading={importing} onClick={() => fileRef.current?.click()}><Upload size={18} /> Import reviews</Button><Button onClick={() => setCreating(true)}><Plus size={18} /> New review cycle</Button></div></header>
     {importMessage ? <div className="oh-card" role="status">{importMessage}</div> : null}
     {(cycles.isLoading || employees.isLoading || reviewers.isLoading) ? <p role="status">Loading performance workspace…</p> : null}{(cycles.isError || employees.isError || reviewers.isError) ? <FormError>Performance management could not be loaded.</FormError> : null}
