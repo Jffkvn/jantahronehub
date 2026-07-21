@@ -31,7 +31,7 @@ function ActionContent({ title, description, icon }: QuickAction) {
 export function QuickActions({ title = 'Quick actions', actions }: QuickActionsProps) {
   return (
     <section className="oh-quick-actions" aria-label={title}>
-      <h2>{title}</h2>
+      <h2 className="oh-quick-actions__title">{title}</h2>
       <div className="oh-quick-actions__list">
         {actions.map((action) => action.to ? (
           <Link

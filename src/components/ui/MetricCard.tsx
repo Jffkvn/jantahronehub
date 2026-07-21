@@ -35,6 +35,7 @@ export function MetricCard(props: MetricCardProps) {
       <Link
         aria-label={`${props.label} ${typeof props.value === 'string' || typeof props.value === 'number' ? props.value : ''}`.trim()}
         className={`${className} oh-metric-card--linked`}
+        data-tone={props.tone ?? 'emerald'}
         to={props.to}
       >
         <MetricContent {...props} />
@@ -43,7 +44,7 @@ export function MetricCard(props: MetricCardProps) {
   }
 
   return (
-    <article className={className}>
+    <article className={className} data-tone={props.tone ?? 'emerald'}>
       <MetricContent {...props} />
     </article>
   )

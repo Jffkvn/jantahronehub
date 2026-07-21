@@ -14,7 +14,7 @@ export function Panel({ title, description, action, children, className = '' }: 
   return (
     <section className={['oh-panel', className].filter(Boolean).join(' ')} aria-labelledby={titleId}>
       <header className="oh-panel__header">
-        <div>
+        <div className="oh-panel__heading">
           <h2 id={titleId}>{title}</h2>
           {description ? <p>{description}</p> : null}
         </div>
