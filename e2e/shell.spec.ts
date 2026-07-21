@@ -5,7 +5,7 @@ test('presents the full navigation shell on desktop', async ({ page }) => {
   await page.goto('/components/shell')
 
   await expect(page.getByLabel('Primary navigation')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Your OneHub workspace' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Welcome back, OneHub' })).toBeVisible()
   await expect(page.getByLabel('Mobile navigation')).toBeHidden()
 })
 

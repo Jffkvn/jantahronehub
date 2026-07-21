@@ -9,8 +9,8 @@ test('operational preview uses restrained titles and contained metrics', async (
   await expect(title).toHaveCSS('font-size', '32px')
 
   const metrics = page.getByTestId('employee-metrics')
-  await expect(metrics).toHaveCSS('background-color', 'rgb(255, 255, 255)')
-  await expect(metrics).toHaveCSS('border-radius', '14px')
+  await expect(metrics).toHaveCSS('background-image', /linear-gradient/)
+  await expect(metrics).toHaveCSS('border-radius', '18px')
 })
 
 test('operational preview remains contained on mobile', async ({ page }) => {
