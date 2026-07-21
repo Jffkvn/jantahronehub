@@ -52,7 +52,11 @@ describe('AppRouter', () => {
     )
 
     expect(
-      await screen.findByRole('heading', { name: /your onehub workspace/i }),
+      await screen.findByRole(
+        'heading',
+        { name: /welcome back, onehub/i },
+        { timeout: 3_000 },
+      ),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Primary navigation')).toBeInTheDocument()
   })

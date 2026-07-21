@@ -15,6 +15,9 @@ const ComponentShowcase = lazy(() =>
   import('./ComponentShowcase').then((module) => ({ default: module.ComponentShowcase })),
 )
 const HomePage = lazy(() => import('../modules/home/HomePage'))
+const HomePreviewPage = lazy(() =>
+  import('../modules/home/HomePage').then((module) => ({ default: module.HomePreviewPage })),
+)
 const PortalPage = lazy(() => import('../modules/portal/PortalPage'))
 const HrPage = lazy(() => import('../modules/hr/HrPage'))
 const WarehousePage = lazy(() => import('../modules/warehouse/WarehousePage'))
@@ -120,7 +123,7 @@ export function AppRouter() {
               />
             }
           >
-            <Route index element={<HomePage />} />
+            <Route index element={<HomePreviewPage />} />
             <Route path="payroll" element={<PayrollPreview />} />
             <Route path="hr" element={<HrPreview />} />
             <Route path="hr-setup" element={<HrSetupPreview />} />
